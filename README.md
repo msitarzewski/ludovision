@@ -61,7 +61,7 @@ To use Ludovision locally, clone the repository and open the `index.html` file i
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/<your-username>/ludovision.git
+   git clone https://github.com/msitarzewski/ludovision.git
    ```
 2. Open the project folder:
    ```bash

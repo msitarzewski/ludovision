@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ludovision</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: sans-serif;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin: 0;
+            padding: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #header {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        #debug-info {
+            margin-right: 30px;
+        }
+
+        #images-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+            gap: 10px;
+            overflow: auto;
+            max-height: 100vh;
+            padding: 60px 10px 10px;
+        }
+
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 128px;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 110;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        #modal-image {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 20px;
+        }
+
+        #modal-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        #warning-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+        }
+
+        #warning-modal h1 {
+            font-size: 2rem;
+            padding: 10px 0px;
+            margin: 0px;
+            font-weight: bold;
+            color: red;
+        }
+
+        #warning-text {
+            width: 450px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        #ok-button {
+            background-color: #38a169; /* Green */
+        }
+
+        #ok-button:hover {
+            background-color: #2f855a;
+        }
+
+        #cancel-button {
+            background-color: #e53e3e; /* Red */
+        }
+
+        #cancel-button:hover {
+            background-color: #c53030;
+        }
+
+        .view-all-media-button {
+            display: none;
+            background-color: #333; /* Dark gray */
+        }
+
+        .view-all-media-button:hover {
+            background-color: #222;
+        }
+
+        #gallery-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 105;
+        }
+
+        #gallery-modal .grid {
+
+            display: grid;
+            grid-auto-rows: auto;
+            grid-template-columns: repeat(auto-fit, minmax(128px, max-content));
+            justify-content: center; /* Center the grid horizontally */
+            gap: 10px; /* Add spacing between grid items */
+            max-width: 80%; /* Restrict the grid to 90% of its container */
+            margin: 0 auto; /* Center the grid in its container */
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+            max-height: 90%;
+
+        }
+
+        #close-gallery-button {
+            background-color: #f56565; /* Red */
+        }
+
+        .view-profile-button {
+            background-color: #38a169; /* Green */
+        }
+
+        .view-profile-button:hover {
+            background-color: #2f855a;
+        }
+
+        #close-gallery-button:hover {
+            background-color: #e53e3e;
+        }
+
+        #gallery-modal .grid img {
+            width: 128px;
+            height: 128px;
+            object-fit: cover;
+            overflow: hidden;
+        }
+
+        #gallery-image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 120;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        #gallery-modal-image {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    
+    <div id="warning-modal">
+        <div>
+            <h1>WARNING</h1>
+            <p id="warning-text" style="text-transform: uppercase;">
+                You are viewing raw image data directly from the Bluesky firehose. This data INCLUDES unfiltered, unmoderated, and potentially sensitive content. Viewer discretion is advised. Proceed only if you are prepared to encounter images that have not been reviewed for appropriateness or relevance.
+            </p>
+            <p id="warning-text">
+                <strong></strong>Disclaimer:</strong><br>
+                The creator of this tool assumes no responsibility for the content accessed through this service. Any inappropriate use, redistribution, or exploitation of the data is strictly prohibited. By continuing, you agree to hold the creator harmless from any liability arising from your use of this data.
+            </p>
+            <div class="modal-buttons">
+                <button id="ok-button">OK</button>
+                <button id="cancel-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="header">
+        <h1>Ludovision: Images from the Bluesky firehose</h1>
+        <div id="debug-info"></div>
+    </div>
+
+    <div id="images-container">
+        <!-- Images will be appended here -->
+    </div>
+
+    <div id="image-modal">
+        <img id="modal-image" alt="Full-size image" style="max-width: 90%; max-height: 90%;">
+        <div class="modal-buttons">
+            <button id="profile-link" class="view-profile-button" href="#" target="_blank">View Profile</button>
+            <button id="view-all-media-button" class="view-all-media-button" href="#">View All Media</button>
+        </div>
+    </div>
+
+    <div id="gallery-modal">
+        <div class="grid">
+            <!-- Gallery images will be appended here -->
+        </div>
+        <div class="modal-buttons">
+            <button id="close-gallery-button">Close</button>
+            <button id="gallery-profile-link" class="view-profile-button" href="#" target="_blank">View Profile</button>
+        </div>
+    </div>
+
+    <div id="gallery-image-modal" style="display: none;">
+        <img id="gallery-modal-image" alt="Full-size gallery image" style="max-width: 90%; max-height: 90%;">
+    </div>
+
+    <script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        console.log('DOMContentLoaded');
+
+        const token = null; // add a bearer token for more fun and excitement.
+
+        // Elements
+        const warningModal = document.getElementById('warning-modal');
+        const okButton = document.getElementById('ok-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const galleryModal = document.getElementById('gallery-modal');
+        const closeGalleryButton = document.getElementById('close-gallery-button');
+        const imagesContainer = document.getElementById('images-container');
+        const modal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        const profileLink = document.getElementById('profile-link');
+        const galleryProfileLink = document.getElementById('gallery-profile-link');
+        const viewAllMediaButton = document.getElementById('view-all-media-button');
+        const galleryContainer = document.querySelector('#gallery-modal .grid');
+        const galleryImageModal = document.getElementById('gallery-image-modal');
+
+        if(token !== null) {
+            viewAllMediaButton.style.display = 'block';
+        }
+
+        // Variables
+        let totalImages = 0;
+
+        const galleryImages = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
+        let currentGalleryImageIndex = 0;
+
+        // Warning modal handlers
+        okButton.addEventListener('click', function () {
+            warningModal.style.display = 'none';
+            setupWebSocket(); // Call WebSocket setup
+        });
+
+        cancelButton.addEventListener('click', function () {
+            window.location.href = 'https://bsky.app'; // Redirect
+        });
+
+        // Close gallery modal
+        closeGalleryButton.addEventListener('click', function () {
+            galleryModal.style.display = 'none';
+        });
+
+        document.addEventListener('click', function (event) {
+            if(event.target === profileLink || event.target === galleryProfileLink) {
+                event.preventDefault();
+                // Open profile in new tab
+                window.open(event.target.href, '_blank');
+            }
+        });
+
+        // Open gallery modal
+        viewAllMediaButton.addEventListener('click', function () {
+            modal.style.display = 'none'; // Close image modal
+            fetchGalleryImages(profileLink.href); // Fetch images
+            galleryModal.style.display = 'flex'; // Open gallery modal
+        });
+
+        // WebSocket setup
+        function setupWebSocket() {
+            const socket = new WebSocket('wss://jetstream1.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post');
+
+            socket.addEventListener('message', function (event) {
+                try {
+                    const decodedMessage = JSON.parse(event.data);
+                    if (
+                        decodedMessage.commit &&
+                        decodedMessage.commit.record &&
+                        decodedMessage.commit.record.embed &&
+                        decodedMessage.commit.record.embed.images
+                    ) {
+                        const images = decodedMessage.commit.record.embed.images;
+                        const profileDid = decodedMessage.did;
+                        const profileLinkUrl = `https://bsky.app/profile/${decodedMessage.did}`;
+                        images.forEach(image => {
+                            const link = image.image.ref['$link'];
+                            const mimeType = image.image.mimeType.split('/')[1];
+                            const imageUrl = `https://cdn.bsky.app/img/feed_thumbnail/plain/${decodedMessage.did}/${link}@${mimeType}`;
+                            appendImage(imageUrl, profileLinkUrl, profileDid);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            });
+
+            socket.addEventListener('open', function () {
+                console.log('WebSocket connection established');
+            });
+
+            socket.addEventListener('close', function () {
+                console.log('WebSocket connection closed');
+            });
+        }
+
+        // Append image to grid
+        function appendImage(imageUrl, profileLinkUrl, profileDid) {
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'image-container';
+
+            const imgElement = document.createElement('img');
+            imgElement.src = imageUrl;
+            imgElement.alt = 'No description available';
+            imgElement.addEventListener('click', function () {
+                openImageModal(imageUrl, profileLinkUrl, profileDid);
+            });
+
+            imageDiv.appendChild(imgElement);
+            imagesContainer.appendChild(imageDiv);
+
+            totalImages++;
+            updateDebugInfo();
+        }
+
+        // Open image modal
+        function openImageModal(imageUrl, profileLinkUrl, profileDid) {
+            modalImage.src = imageUrl;
+            profileLink.href = profileLinkUrl;
+            profileLink.textContent = 'View Profile';
+            modal.style.display = 'flex'; // Show modal
+        }
+
+        // Fetch gallery images
+        function fetchGalleryImages(profileUrl) {
+
+            galleryContainer.innerHTML = ''; // Clear previous content
+
+            // Extract DID from profile URL
+            const profileDid = profileUrl.split('/').pop();
+
+            fetch(`https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${profileDid}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Fetched gallery data:', data);
+                galleryProfileLink.href = profileUrl;
+                data.feed.forEach(item => {
+                    if (item.post.embed && item.post.embed.images) {
+                        item.post.embed.images.forEach(image => {
+                            const imgElement = document.createElement('img');
+                            imgElement.src = image.thumb; // Use image.fullsize for full-size images
+                            imgElement.alt = image.alt || 'User media';
+                            imgElement.addEventListener('click', function () {
+                                currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img')).indexOf(imgElement);
+                                showGalleryImageInModal(imgElement.src);
+                            });
+                            galleryContainer.appendChild(imgElement);
+                        });
+                    }
+                });
+            })
+
+            // catch expired token
+            .catch(error => {  
+                if(error.message.includes('Expired')) {
+                    alert('Token expired.');
+                } else {
+                    console.error('Error fetching gallery images:', error);
+                }
+            })
+            .finally(() => {
+                console.log('Gallery images loaded.');
+            });
+        }
+
+        // Update debug info
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.textContent = `${totalImages} images loaded`;
+        }
+
+        // Close modals with ESC key
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                if (modal.style.display === 'flex') {
+                    modal.style.display = 'none';
+                }
+                if (galleryModal.style.display === 'flex') {
+                    galleryModal.style.display = 'none';
+                }
+            }
+        });
+
+        // Close modals by clicking outside
+        window.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+            if (event.target === galleryModal) {
+                galleryModal.style.display = 'none';
+            }
+        });
+
+        function showGalleryImageInModal(imageUrl) {
+            const galleryModalImage = document.getElementById('gallery-modal-image');
+            const galleryImageModal = document.getElementById('gallery-image-modal');
+            galleryModalImage.src = imageUrl;
+            galleryImageModal.style.display = 'flex';
+            galleryModal.style.display = 'none'; // Hide gallery modal
+        }
+
+        // Navigate gallery images with arrow keys or WASD
+        document.addEventListener('keydown', function (event) {
+            if (galleryImageModal.style.display === 'flex') {
+                if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
+                    navigateGalleryImage(1);
+                } else if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
+                    navigateGalleryImage(-1);
+                } else if (event.key === 'Escape') {
+                    closeGalleryImageModal();
+                }
+            }
+        });
+
+        function navigateGalleryImage(direction) {
+            // Dynamically select all gallery images
+            const galleryImagesArray = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
+            
+            if (galleryImagesArray.length === 0) {
+                console.error('No gallery images available.');
+                return;
+            }
+
+            // Update the current index with wrapping logic
+            currentGalleryImageIndex = (currentGalleryImageIndex + direction + galleryImagesArray.length) % galleryImagesArray.length;
+
+            // Show the selected image in the gallery modal
+            const selectedImage = galleryImagesArray[currentGalleryImageIndex];
+            if (selectedImage) {
+                showGalleryImageInModal(selectedImage.src);
+            } else {
+                console.error('Selected image not found.');
+            }
+        }
+
+        function closeGalleryImageModal() {
+            galleryImageModal.style.display = 'none';
+            galleryModal.style.display = 'flex'; // Show gallery modal again
+        }
+
+        // Close gallery image modal with click outside
+        window.addEventListener('click', function (event) {
+            if (event.target === galleryImageModal) {
+                closeGalleryImageModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            // Check if the Enter/Return or Space bar is pressed
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault(); // Prevent default action like scrolling
+
+                // Check if the gallery modal is already open
+                if (galleryModal.style.display !== 'flex') {
+                    // Launch the gallery if there's a token
+                    if (token !== null) {
+                        viewAllMediaButton.click(); // Simulate click to open gallery
+                    }
+                } else {
+                    // Launch the gallery-image-viewer if the gallery is open
+                    const selectedImage = galleryContainer.querySelector('img');
+                    if (selectedImage) {
+                        selectedImage.click(); // Simulate click to open image viewer
+                    }
+                }
+            }
+
+            // Handle Tab and Shift+Tab for navigation
+            if (galleryModal.style.display === 'flex') {
+                const focusableImages = Array.from(galleryContainer.querySelectorAll('img'));
+                let currentIndex = focusableImages.indexOf(document.activeElement);
+
+                if (event.key === 'Tab') {
+                    event.preventDefault(); // Prevent default tabbing behavior
+
+                    if (event.shiftKey) {
+                        // Shift+Tab: Move focus to the previous image
+                        currentIndex = (currentIndex - 1 + focusableImages.length) % focusableImages.length;
+                    } else {
+                        // Tab: Move focus to the next image
+                        currentIndex = (currentIndex + 1) % focusableImages.length;
+                    }
+
+                    focusableImages[currentIndex].focus();
+                }
+            }
+        });
+    });
+        
+    </script>
+    
+</body>
+</html>

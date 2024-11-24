@@ -85,4 +85,4 @@ This project is intended for educational and awareness purposes only. Respect pl
 
 ## 📝 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [Unicense](LICENSE).

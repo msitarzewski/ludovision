@@ -51,6 +51,7 @@ Ludovision is a tool for exploring publicly available data and does not:
 ## 🧑‍💻 Getting Started
 
 To use Ludovision locally, clone the repository and open the `index.html` file in your browser.
+- ‼️ I **HIGHLY** recommend opening this file in Private Browsing Mode or Incognito.
 
 ### Prerequisites
 - A modern browser (tested on Chrome, Firefox, and Safari).

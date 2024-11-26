@@ -5,9 +5,255 @@ body {
     margin: 0;
 }
 
-/* ... rest of CSS ... */
+h1 {
+    font-size: 1.5em;
+    margin: 0;
+    padding: 15px;
+}
 
-/* Move all dynamically added CSS here as well */
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#header {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+#debug-info {
+    margin-right: 30px;
+}
+
+#images-container {
+    display: none;
+    /* grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); */
+    gap: 10px;
+    overflow: auto;
+    max-height: 100vh;
+    padding: 0px 10px 0px 10px;
+}
+
+.image-container {
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+}
+
+.image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+#image-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 110;
+    backdrop-filter: blur(10px);
+    display: none;
+}
+
+#modal-image {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 20px;
+}
+
+#modal-nav {
+    display: flex;
+    gap: 10px;
+}
+
+#warning-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 1000;
+}
+
+#warning-modal h1 {
+    font-size: 2rem;
+    padding: 10px 0px;
+    margin: 0px;
+    font-weight: bold;
+    color: red;
+}
+
+#warning-text {
+    width: 450px;
+    margin-top: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+#ok-button {
+    background-color: #38a169; /* Green */
+}
+
+#ok-button:hover {
+    background-color: #2f855a;
+}
+
+#cancel-button {
+    background-color: #e53e3e; /* Red */
+}
+
+#cancel-button:hover {
+    background-color: #c53030;
+}
+
+.view-all-media-button {
+    display: none;
+    background-color: #333; /* Dark gray */
+}
+
+.view-all-media-button:hover {
+    background-color: #222;
+}
+
+#gallery-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 105;
+    backdrop-filter: blur(10px);
+}
+
+#gallery-modal .grid {
+
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns: repeat(auto-fit, minmax(128px, max-content));
+    justify-content: center; /* Center the grid horizontally */
+    gap: 10px; /* Add spacing between grid items */
+    max-width: 80%; /* Restrict the grid to 90% of its container */
+    margin: 0 auto; /* Center the grid in its container */
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    overflow: auto;
+    max-height: 90%;
+
+}
+
+#close-gallery-button {
+    background-color: #f56565; /* Red */
+}
+
+.view-profile-button {
+    background-color: #38a169; /* Green */
+}
+
+.view-profile-button:hover {
+    background-color: #2f855a;
+}
+
+#close-gallery-button:hover {
+    background-color: #e53e3e;
+}
+
+#gallery-modal .grid img {
+    width: 128px;
+    height: 128px;
+    object-fit: cover;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+#gallery-image-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 120;
+    backdrop-filter: blur(10px);
+    display: none;
+}
+
+#gallery-modal-image {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+
+#magnifier {
+    position: absolute;
+    width: 512px;
+    height: 512px;
+    border: 2px solid #fff;
+    border-radius: 50%; /* Circular magnifier */
+    overflow: hidden;
+    background-repeat: no-repeat;
+    background-size: auto;
+    cursor: none; /* Hide default cursor inside magnifier */
+    pointer-events: none; /* Make it non-interactive */
+    z-index: 1000; /* Above other content */
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#image-size-slider {
+    width: 200px;
+}
+
+label {
+    font-size: 1em;
+    color: white;
+}
+
 .control-button {
     padding: 5px 15px;
     background-color: #4a5568;
@@ -18,4 +264,10 @@ body {
     transition: background-color 0.3s;
 }
 
-/* ... etc ... */ 
+.control-button:hover {
+    background-color: #2d3748;
+}
+
+#pause-button {
+    min-width: 120px;
+}

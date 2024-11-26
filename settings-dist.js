@@ -18,6 +18,9 @@ const feedDelay = 0;
 // Feed starts in running state
 const feedPaused = false;
 
+// Feed order
+const newestFirst = false;
+
 // Settings object
 const settings = {
     imageSize: imageSize,
@@ -25,7 +28,7 @@ const settings = {
     magnifier: magnifier,
     bsky_identifier: bsky_identifier,
     bsky_appPassword: bsky_appPassword,
-    newestFirst: true,
+    newestFirst: newestFirst,
     feedDelay: feedDelay,
     feedPaused: feedPaused,
 }

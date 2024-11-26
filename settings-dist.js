@@ -1,7 +1,7 @@
 // Bluesky credentials from Account Settings
 // see https://bsky.app/settings/app-passwords
-const bsky_identifier = "null";
-const bsky_appPassword = "null";
+const bsky_identifier = null;
+const bsky_appPassword = null;
 
 // Default feed image size
 const imageSize = 128;

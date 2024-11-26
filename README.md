@@ -80,21 +80,31 @@ To enable the full gallery view of an image owner's account:
 
 3. Save the changes and reload the file in your browser.
 
-
 ## Content Warning Modal
-<img src="samples/warning.png" alt="The content warning modal" title="Warning" width="300">
-`OK` to load the feed
-`CANCEL` to be redirected to Bluesky.
+<img src="samples/warning.png" alt="The content warning modal" title="Warning" width="450">
+- `OK` to load the feed  
+- `CANCEL` to be redirected to Bluesky  
 > *Note: You can override this warning in settings.js*
 
 ## The Feed
-<img src="samples/feed.png" alt="Screen shot of the basic feed" title="The Feed" width="300">
+<img src="samples/feed.png" alt="Screen shot of the basic feed" title="The Feed" width="450">
+<img src="samples/feed-large.png" alt="Screen shot of the basic feed with a larger image size" title="The Feed Large" width="450">
 The feed begins to load automatically after either the Warning modal is acknowledged, or the pages is freshed when overridden.
+
 Images stream in in real time from the firehose. We use a defer technique to show only the images you've scrolled to or that have already appeared in the viewport. This saves a ton of bandwidth and makes the gallery view snappy.
+
 You can adjust the image preview size in the header from between 32px and 512px on the fly. You can set a default value in settings.js, otherwise it's 128px.
+
 The header also shows status. Today that's simply the number of images that have been loaded from into the feed.
+
 Click any image to open the Feed Image modal. 
 
+## Feed Image Modal
+<img src="samples/feed-image.png" alt="Screen shot of an image modal" title="The Image Modal" width="450">
+The selected image is scaled to fit the current viewport.
+`View Profile` to open Bluesky to the user's profile page
+If Bluesky authentication is enabled, you can also click `View Gallery` to see the rest of the images in the user's profile.
+*Note: You can use the space bar to launch the Gallery View. ESC will close the current modal*
 
 ## 🎯 Future Goals
 

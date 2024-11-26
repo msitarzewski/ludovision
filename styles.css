@@ -1,0 +1,21 @@
+body {
+    background-color: black;
+    color: white;
+    font-family: sans-serif;
+    margin: 0;
+}
+
+/* ... rest of CSS ... */
+
+/* Move all dynamically added CSS here as well */
+.control-button {
+    padding: 5px 15px;
+    background-color: #4a5568;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* ... etc ... */ 

@@ -259,6 +259,24 @@
             color: white;
         }
 
+        .control-button {
+            padding: 5px 15px;
+            background-color: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .control-button:hover {
+            background-color: #2d3748;
+        }
+        
+        #pause-button {
+            min-width: 120px;
+        }
+
     </style>
 </head>
 <body>
@@ -318,19 +336,24 @@
     </div>
 
     <!-- Include settings script -->
-    <script src="settings.js"></script>
+    <script src="settings-dist.js"></script>
 
     <script>
 
     document.addEventListener('DOMContentLoaded', function () {
-
-        // Settings
+        // Settings and variables - move these to the top
         const settings = typeof window.settings === 'object' ? window.settings : {};
-        let token = null;
+        let token = "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJFUzI1NksifQ.eyJzY29wZSI6ImNvbS5hdHByb3RvLmFjY2VzcyIsInN1YiI6ImRpZDpwbGM6dmR5NnlzbnE3bTJwb2VwazU2dXNyYTNzIiwiaWF0IjoxNzMyNTQ5MjM1LCJleHAiOjE3MzI1NTY0MzUsImF1ZCI6ImRpZDp3ZWI6c2hpaXRha2UudXMtZWFzdC5ob3N0LmJza3kubmV0d29yayJ9.wcxq7lpILSvigjs--uU4CrUDjCMpCmpLrchSNhq1iP20kiyqu8ebXglYcvBOoTOwghkVuuWPRZIxG__rpD_5Qg";
         let refreshToken = null;
         let imageSize = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
         let launchWarning = typeof settings.launchWarning === 'boolean' ? settings.launchWarning : true;
         let magnifier = typeof settings.magnifier === 'boolean' ? settings.magnifier : true;
+        let newestFirst = typeof settings.newestFirst === 'boolean' ? settings.newestFirst : true;
+        let feedDelay = typeof settings.feedDelay === 'number' ? settings.feedDelay : 0;
+        let feedPaused = typeof settings.feedPaused === 'boolean' ? settings.feedPaused : false;
+        let pendingImages = [];
+        let totalImages = 0;
+        let currentGalleryImageIndex = 0;
 
         // Bluesky credentials
         let bsky_identifier = typeof settings.bsky_identifier === 'string' ? settings.bsky_identifier : null;
@@ -362,10 +385,6 @@
             header.style.display = 'flex';
             setupWebSocket(); // Call WebSocket setup
         }
-
-        // Variables
-        let totalImages = 0;
-        let currentGalleryImageIndex = 0;
 
         // Set grid-template-columns
         imagesContainer.style.gridAutoRows = `${imageSize}px`; // Set the height
@@ -403,14 +422,82 @@
             galleryModal.style.display = 'flex'; // Open gallery modal
         });
 
+        // Move the ImageQueue class definition to before its first use
+        class ImageQueue {
+            constructor() {
+                this.pending = [];
+                this.paused = false;
+                this.delay = 0;
+                this.processing = false;
+            }
+
+            add(imageData) {
+                if (this.delay > 0) {
+                    this.pending.push(imageData);
+                    if (!this.processing && !this.paused) {
+                        this.processing = true;
+                        this.processNext();
+                    }
+                } else if (this.paused) {
+                    this.pending.push(imageData);
+                } else {
+                    appendImageImmediate(imageData);
+                }
+                updateDebugInfo();
+            }
+
+            processNext() {
+                if (this.pending.length === 0 || this.paused) {
+                    this.processing = false;
+                    return;
+                }
+                
+                const imageData = this.pending[0];
+                appendImageImmediate(imageData);
+                this.pending.shift();
+                
+                if (this.pending.length > 0 && !this.paused) {
+                    setTimeout(() => this.processNext(), this.delay);
+                } else {
+                    this.processing = false;
+                }
+            }
+
+            clear() {
+                const count = this.pending.length;
+                this.pending = [];
+                this.processing = false;
+                return count;
+            }
+
+            setPause(paused) {
+                this.paused = paused;
+                if (!paused && this.pending.length > 0 && !this.processing) {
+                    this.processing = true;
+                    this.processNext();
+                }
+            }
+
+            setDelay(delay) {
+                this.delay = delay;
+                if (!this.processing && this.pending.length > 0 && !this.paused) {
+                    this.processing = true;
+                    this.processNext();
+                }
+            }
+        }
+
+        // Initialize ImageQueue at the start with current settings
+        const imageQueue = new ImageQueue();
+        imageQueue.delay = feedDelay;
+        imageQueue.paused = feedPaused;
+
         // WebSocket setup
         function setupWebSocket() {
-
             const socket = new WebSocket('wss://jetstream1.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post');
 
             socket.addEventListener('message', function (event) {
                 try {
-
                     imagesContainer.style.display = 'grid';
                     const decodedMessage = JSON.parse(event.data);
                     if (
@@ -419,22 +506,18 @@
                         decodedMessage.commit.record.embed &&
                         decodedMessage.commit.record.embed.images
                     ) {
-
                         // Get images and profile DID
                         const images = decodedMessage.commit.record.embed.images;
                         const profileDid = decodedMessage.did;
-
-                        // Set profile link
                         const profileLinkUrl = `https://bsky.app/profile/${decodedMessage.did}`;
 
-                        // Append images
+                        // Use imageQueue.add instead of appendImage
                         images.forEach(image => {
                             const link = image.image.ref['$link'];
                             const mimeType = image.image.mimeType.split('/')[1];
                             const imageUrl = `https://cdn.bsky.app/img/feed_thumbnail/plain/${decodedMessage.did}/${link}@${mimeType}`;
-                            appendImage(imageUrl, profileLinkUrl, profileDid);
+                            imageQueue.add({ imageUrl, profileLinkUrl, profileDid });
                         });
-
                     }
                 } catch (error) {
                     console.error('Error parsing WebSocket message:', error);
@@ -468,8 +551,8 @@
             threshold: 0.1 // Trigger when 10% of the image is visible
         });
 
-        // Append image and apply lazy loading
-        function appendImage(imageUrl, profileLinkUrl, profileDid) {
+        // Immediate append function (original appendImage logic)
+        function appendImageImmediate({ imageUrl, profileLinkUrl, profileDid }) {
             const imageDiv = document.createElement('div');
             imageDiv.className = 'image-container';
 
@@ -482,11 +565,14 @@
             });
 
             imageDiv.appendChild(imgElement);
-            imagesContainer.appendChild(imageDiv);
+            
+            if (newestFirst) {
+                imagesContainer.insertBefore(imageDiv, imagesContainer.firstChild);
+            } else {
+                imagesContainer.appendChild(imageDiv);
+            }
 
-            // Observe only the newly created image
             observer.observe(imgElement);
-
             totalImages++;
             updateDebugInfo();
         }
@@ -556,7 +642,16 @@
         // Update debug info
         function updateDebugInfo() {
             const debugInfo = document.getElementById('debug-info');
-            debugInfo.textContent = `${totalImages} images loaded`;
+            debugInfo.textContent = `${totalImages} images loaded${imageQueue.pending.length > 0 ? ` (${imageQueue.pending.length} pending)` : ''}`;
+            
+            // Update skip button visibility and text when feed is active
+            const skipButton = document.getElementById('skip-button');
+            if (!feedPaused && imageQueue.pending.length > 0) {
+                skipButton.style.display = 'block';
+                skipButton.textContent = `Skip Queue (${imageQueue.pending.length})`;
+            } else {
+                skipButton.style.display = 'none';
+            }
         }
 
         // Close modals with ESC key
@@ -889,6 +984,200 @@
 
         // Start the authentication process
         handleAuthentication();
+
+        // Add a toggle button to the header
+        const headerDiv = document.getElementById('header');
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'slider-container';
+        toggleContainer.innerHTML = `
+            <label for="sort-toggle">
+                <input type="checkbox" id="sort-toggle" ${newestFirst ? 'checked' : ''}>
+                Newest First
+            </label>
+        `;
+
+        // Insert the toggle before the debug info
+        const debugInfo = document.getElementById('debug-info');
+        headerDiv.insertBefore(toggleContainer, debugInfo);
+
+        // Add event listener for the toggle
+        document.getElementById('sort-toggle').addEventListener('change', function(e) {
+            newestFirst = e.target.checked;
+            
+            // Reverse the order of existing images
+            const images = Array.from(imagesContainer.children);
+            images.reverse().forEach(img => imagesContainer.appendChild(img));
+        });
+
+        // Add some CSS for the toggle
+        const style = document.createElement('style');
+        style.textContent = `
+            #sort-toggle {
+                margin-right: 5px;
+                vertical-align: middle;
+            }
+            
+            .slider-container label {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Create speed control container first
+        const speedContainer = document.createElement('div');
+        speedContainer.className = 'slider-container';
+        speedContainer.innerHTML = `
+            <label for="speed-slider">
+                Feed Delay: <span id="speed-value">${feedDelay}</span>ms
+                <input type="range" id="speed-slider" min="0" max="2000" value="${feedDelay}" step="100">
+            </label>
+        `;
+
+        // Insert the speed control into header
+        headerDiv.insertBefore(speedContainer, debugInfo);
+
+        // Now we can safely get the elements and add the event listener
+        const speedSlider = document.getElementById('speed-slider');
+        const speedValue = document.getElementById('speed-value');
+
+        speedSlider.addEventListener('input', function(e) {
+            feedDelay = parseInt(e.target.value);
+            speedValue.textContent = feedDelay;
+            imageQueue.setDelay(feedDelay);
+        });
+
+        // Add CSS for the speed slider
+        style.textContent += `
+            #speed-slider {
+                width: 150px;
+                margin: 0 10px;
+                vertical-align: middle;
+            }
+            
+            .slider-container {
+                margin: 0 15px;
+            }
+        `;
+
+        // Add after the speed container
+        const pauseContainer = document.createElement('div');
+        pauseContainer.className = 'slider-container';
+        pauseContainer.innerHTML = `
+            <button id="pause-button" class="control-button">
+                ${feedPaused ? 'Resume' : 'Pause'} Feed
+            </button>
+        `;
+
+        // Insert the pause control after the speed control
+        headerDiv.insertBefore(pauseContainer, debugInfo);
+
+        // Add pause button event listener
+        const pauseButton = document.getElementById('pause-button');
+
+        pauseButton.addEventListener('click', function() {
+            feedPaused = !feedPaused;
+            pauseButton.textContent = feedPaused ? 'Resume Feed' : 'Pause Feed';
+            imageQueue.setPause(feedPaused);
+            
+            // Update skip button visibility
+            skipButton.style.display = !feedPaused && imageQueue.pending.length > 0 ? 'block' : 'none';
+        });
+
+        // Add CSS for the pause button
+        style.textContent += `
+            .control-button {
+                padding: 5px 15px;
+                background-color: #4a5568;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+            
+            .control-button:hover {
+                background-color: #2d3748;
+            }
+            
+            #pause-button {
+                min-width: 120px;
+            }
+        `;
+
+        // Add after the pause container creation
+        const skipContainer = document.createElement('div');
+        skipContainer.className = 'slider-container';
+        skipContainer.innerHTML = `
+            <button id="skip-button" class="control-button" style="display: none;">
+                Skip Queue (${imageQueue.pending.length})
+            </button>
+        `;
+
+        // Insert the skip control after the pause control
+        headerDiv.insertBefore(skipContainer, debugInfo);
+
+        // Add skip button functionality
+        const skipButton = document.getElementById('skip-button');
+
+        const NotificationService = {
+            show(message, duration = 3000) {
+                const notification = document.createElement('div');
+                notification.textContent = message;
+                notification.className = 'notification';
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), duration);
+            }
+        };
+
+        skipButton.addEventListener('click', function() {
+            const skippedCount = imageQueue.clear();
+            updateDebugInfo();
+            skipButton.style.display = 'none';
+            NotificationService.show(`Skipped ${skippedCount} images`);
+        });
+
+        // Add CSS for the skip button
+        style.textContent += `
+            #skip-button {
+                background-color: #e53e3e;
+                margin-left: 10px;
+            }
+            
+            #skip-button:hover {
+                background-color: #c53030;
+            }
+        `;
+
+        class ModalManager {
+            static closeAll() {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => modal.style.display = 'none');
+            }
+
+            static show(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    this.closeAll();
+                    modal.style.display = 'flex';
+                }
+            }
+
+            static hide(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        }
+
+        // Use it in event listeners
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                ModalManager.closeAll();
+            }
+        });
 
     });
         

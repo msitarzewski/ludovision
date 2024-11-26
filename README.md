@@ -1,3 +1,4 @@
+![Ludovision Feed](samples/feed.png "Default feed view")
 
 # Ludovision
 
@@ -15,18 +16,6 @@
 ## 🛠️ How It Works
 
 Ludovision connects directly to the Bluesky firehose API and processes public image data to display it in a simple, scrollable interface. It leverages minimal JavaScript to provide functionality without requiring any external dependencies or backend server.
-
-### Setting Up the Full Gallery View
-
-To enable the full gallery view of an image owner's account:
-1. Locate the `token` variable in the source code.
-2. Replace null with your Bluesky bearer token.
-   ```javascript
-   const token = null;
-   ```
-   > *Note: Your Bluesky bearer token can be found in your account settings or by inspecting API calls made by the platform.*
-
-3. Save the changes and reload the tool in your browser.
 
 ### The Name
 The project is named **Ludovision** as a nod to *A Clockwork Orange*'s Ludovico Technique—a scene where the protagonist is subjected to aversion therapy. Similarly, scrolling through this unfiltered firehose of images serves as a vivid reminder of how public and permanent our online actions are.
@@ -46,7 +35,7 @@ Ludovision is a tool for exploring publicly available data and does not:
 - Store any data locally or remotely.
 - Track user activity in any form.
 - Interact with any servers by default other than the Bluesky firehose
-- Ludovision will accept an auth token for Gallery view. This will identify your activity with Bluesky servers. Use caution.
+- Ludovision will accept an auth token for Gallery view. This will identify your activity with Bluesky servers when using Gallery view only. Use caution.
 
 ## 🧑‍💻 Getting Started
 
@@ -72,6 +61,23 @@ To use Ludovision locally, clone the repository and open the `index.html` file i
    ```bash
    open index.html
    ```
+4. Optional:
+   ```bash
+   cp settings-dist.js settings.js
+   ```
+   Modify default image size, token, etc.
+
+### Setting Up the Full Gallery View
+
+To enable the full gallery view of an image owner's account:
+1. Locate the `token` variable in the ssettings.js file (see aboce).
+2. Replace null with your Bluesky bearer token.
+   ```javascript
+   const token = null;
+   ```
+   > *Note: Your Bluesky bearer token can be found in your account settings or by inspecting API calls made by the platform.*
+
+3. Save the changes and reload the tool in your browser.
 
 ## 🎯 Future Goals
 

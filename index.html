@@ -603,11 +603,9 @@
                 const displayedWidth = galleryModalImage.clientWidth;
                 const displayedHeight = galleryModalImage.clientHeight;
 
-                console.log(`Native size: ${nativeWidth}x${nativeHeight}`);
-                console.log(`Displayed size: ${displayedWidth}x${displayedHeight}`);
-
                 // Check if the displayed size is smaller than the natural size
                 if (displayedWidth < nativeWidth || displayedHeight < nativeHeight) {
+                    
                     // Create and display the "View Full Size" button
                     const fullSizeButton = document.createElement('button');
                     fullSizeButton.textContent = 'View Full Size';

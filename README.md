@@ -1,3 +1,4 @@
+![Ludovision Feed](samples/feed.png "Default feed view")
 
 # Ludovision
 

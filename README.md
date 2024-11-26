@@ -45,7 +45,7 @@ To use Ludovision locally, clone the repository and open the `index.html` file i
 ### Prerequisites
 - A modern browser (tested on Chrome, Firefox, and Safari).
 - Access to the Bluesky firehose API.
-- (Optional) A Bluesky auth token for enabling the full gallery view.
+- (Optional) A Bluesky auth pair for enabling the full gallery view.
 
 ### Installation
 
@@ -70,14 +70,31 @@ To use Ludovision locally, clone the repository and open the `index.html` file i
 ### Setting Up the Full Gallery View
 
 To enable the full gallery view of an image owner's account:
-1. Locate the `token` variable in the ssettings.js file (see aboce).
-2. Replace null with your Bluesky bearer token.
+1. Locate the `bsky_identifier` and `bsky_appPassword` variablea in the settings.js file (see above).
+2. Replace null with your Bluesky identifier and App Password.
    ```javascript
-   token: null;
+   const bsky_identifier = null;
+   const bsky_appPassword = null;
    ```
-   > *Note: Your Bluesky bearer token can be found in your account settings or by inspecting API calls made by the platform.*
+   > *Note: see https://bsky.app/settings/app-passwords for more details*
 
-3. Save the changes and reload the tool in your browser.
+3. Save the changes and reload the file in your browser.
+
+
+## Content Warning Modal
+<img src="samples/warning.png" alt="The content warning modal" title="Warning" width="300">
+`OK` to load the feed
+`CANCEL` to be redirected to Bluesky.
+> *Note: You can override this warning in settings.js*
+
+## The Feed
+<img src="samples/feed.png" alt="Screen shot of the basic feed" title="The Feed" width="300">
+The feed begins to load automatically after either the Warning modal is acknowledged, or the pages is freshed when overridden.
+Images stream in in real time from the firehose. We use a defer technique to show only the images you've scrolled to or that have already appeared in the viewport. This saves a ton of bandwidth and makes the gallery view snappy.
+You can adjust the image preview size in the header from between 32px and 512px on the fly. You can set a default value in settings.js, otherwise it's 128px.
+The header also shows status. Today that's simply the number of images that have been loaded from into the feed.
+Click any image to open the Feed Image modal. 
+
 
 ## 🎯 Future Goals
 
@@ -92,4 +109,4 @@ This project is intended for educational and awareness purposes only. Respect pl
 
 ## 📝 License
 
-This project is licensed under the [Unicense](LICENSE).
+This project is licensed under the [Unlicense](LICENSE).

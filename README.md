@@ -70,7 +70,7 @@ To use Ludovision locally, clone the repository and open the `index.html` file i
 ### Setting Up the Full Gallery View
 
 To enable the full gallery view of an image owner's account:
-1. Locate the `bsky_identifier` and `bsky_appPassword` variablea in the settings.js file (see above).
+1. Locate the `bsky_identifier` and `bsky_appPassword` variables in the settings.js file (see above).
 2. Replace null with your Bluesky identifier and App Password.
    ```javascript
    const bsky_identifier = null;

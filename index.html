@@ -29,7 +29,7 @@
         #header {
             background-color: rgba(0, 0, 0, 0.8);
             color: white;
-            display: flex;
+            display: none;
             justify-content: space-between;
             align-items: center;
             position: fixed;
@@ -44,19 +44,18 @@
         }
 
         #images-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+            display: none;
+            /* grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); */
             gap: 10px;
             overflow: auto;
             max-height: 100vh;
-            padding: 60px 10px 10px;
+            padding: 0px 10px 0px 10px;
         }
 
         .image-container {
             position: relative;
             overflow: hidden;
-            width: 100%;
-            height: 128px;
+            height: 100%;
         }
 
         .image-container img {
@@ -162,6 +161,7 @@
             justify-content: center;
             background-color: rgba(0, 0, 0, 0.75);
             z-index: 105;
+            backdrop-filter: blur(10px);
         }
 
         #gallery-modal .grid {
@@ -226,6 +226,36 @@
             margin-bottom: 20px;
         }
 
+        #magnifier {
+            position: absolute;
+            width: 512px;
+            height: 512px;
+            border: 2px solid #fff;
+            border-radius: 50%; /* Circular magnifier */
+            overflow: hidden;
+            background-repeat: no-repeat;
+            background-size: auto;
+            cursor: none; /* Hide default cursor inside magnifier */
+            pointer-events: none; /* Make it non-interactive */
+            z-index: 1000; /* Above other content */
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #image-size-slider {
+            width: 200px;
+        }
+
+        label {
+            font-size: 1em;
+            color: white;
+        }
+
     </style>
 </head>
 <body>
@@ -250,6 +280,10 @@
 
     <div id="header">
         <h1>Ludovision: Images from the Bluesky firehose</h1>
+        <div class="slider-container">
+            <label for="image-size-slider">Image Size: <span id="slider-value">128</span>px</label>
+            <input type="range" id="image-size-slider" min="32" max="512" value="128" step="1">
+        </div>
         <div id="debug-info"></div>
     </div>
 
@@ -261,7 +295,7 @@
         <img id="modal-image" alt="Full-size image" style="max-width: 90%; max-height: 90%;">
         <div class="modal-buttons">
             <button id="profile-link" class="view-profile-button" href="#" target="_blank">View Profile</button>
-            <button id="view-all-media-button" class="view-all-media-button" href="#">View All Media</button>
+            <button id="view-all-media-button" class="view-all-media-button" href="#">View Gallery</button>
         </div>
     </div>
 
@@ -277,17 +311,23 @@
 
     <div id="gallery-image-modal" style="display: none;">
         <img id="gallery-modal-image" alt="Full-size gallery image" style="max-width: 90%; max-height: 90%;">
+        <div id="magnifier" style="display: none;"></div>
     </div>
+
+    <!-- Include settings script -->
+    <script src="settings.js"></script>
 
     <script>
 
     document.addEventListener('DOMContentLoaded', function () {
-        
-        console.log('DOMContentLoaded');
 
-        const token = null; // add a bearer token for more fun and excitement.
+        // Settings
+        const settings = typeof window.settings === 'object' ? window.settings : {};
+        let token = typeof settings.token === 'string' ? settings.token : null;
+        let imageSize = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
 
         // Elements
+        const header = document.getElementById('header');
         const warningModal = document.getElementById('warning-modal');
         const okButton = document.getElementById('ok-button');
         const cancelButton = document.getElementById('cancel-button');
@@ -301,6 +341,9 @@
         const viewAllMediaButton = document.getElementById('view-all-media-button');
         const galleryContainer = document.querySelector('#gallery-modal .grid');
         const galleryImageModal = document.getElementById('gallery-image-modal');
+        const galleryImages = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
+        const imageSizeSlider = document.getElementById('image-size-slider');
+        const sliderValueDisplay = document.getElementById('slider-value');
 
         if(token !== null) {
             viewAllMediaButton.style.display = 'block';
@@ -308,13 +351,17 @@
 
         // Variables
         let totalImages = 0;
-
-        const galleryImages = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
         let currentGalleryImageIndex = 0;
 
+        // Set grid-template-columns
+        imagesContainer.style.gridAutoRows = `${imageSize}px`; // Set the height
+        imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${imageSize}px, 1fr))`;
+
+        
         // Warning modal handlers
         okButton.addEventListener('click', function () {
             warningModal.style.display = 'none';
+            header.style.display = 'flex';
             setupWebSocket(); // Call WebSocket setup
         });
 
@@ -327,10 +374,10 @@
             galleryModal.style.display = 'none';
         });
 
+        // Open profile in new tab
         document.addEventListener('click', function (event) {
             if(event.target === profileLink || event.target === galleryProfileLink) {
                 event.preventDefault();
-                // Open profile in new tab
                 window.open(event.target.href, '_blank');
             }
         });
@@ -344,10 +391,13 @@
 
         // WebSocket setup
         function setupWebSocket() {
+
             const socket = new WebSocket('wss://jetstream1.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post');
 
             socket.addEventListener('message', function (event) {
                 try {
+
+                    imagesContainer.style.display = 'grid';
                     const decodedMessage = JSON.parse(event.data);
                     if (
                         decodedMessage.commit &&
@@ -355,15 +405,22 @@
                         decodedMessage.commit.record.embed &&
                         decodedMessage.commit.record.embed.images
                     ) {
+
+                        // Get images and profile DID
                         const images = decodedMessage.commit.record.embed.images;
                         const profileDid = decodedMessage.did;
+
+                        // Set profile link
                         const profileLinkUrl = `https://bsky.app/profile/${decodedMessage.did}`;
+
+                        // Append images
                         images.forEach(image => {
                             const link = image.image.ref['$link'];
                             const mimeType = image.image.mimeType.split('/')[1];
                             const imageUrl = `https://cdn.bsky.app/img/feed_thumbnail/plain/${decodedMessage.did}/${link}@${mimeType}`;
                             appendImage(imageUrl, profileLinkUrl, profileDid);
                         });
+
                     }
                 } catch (error) {
                     console.error('Error parsing WebSocket message:', error);
@@ -379,24 +436,49 @@
             });
         }
 
-        // Append image to grid
+        // Create IntersectionObserver for lazy loading
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src; // Set the real image source
+                        img.style.opacity = 1; // Make the image visible
+                        observer.unobserve(img); // Stop observing the image
+                    }
+                }
+            });
+        }, {
+            root: null, // Default to the viewport
+            rootMargin: "0px", // Load the image when it enters the viewport
+            threshold: 0.1 // Trigger when 10% of the image is visible
+        });
+
+        // Append image and apply lazy loading
         function appendImage(imageUrl, profileLinkUrl, profileDid) {
             const imageDiv = document.createElement('div');
             imageDiv.className = 'image-container';
 
             const imgElement = document.createElement('img');
-            imgElement.src = imageUrl;
+            imgElement.dataset.src = imageUrl;
             imgElement.alt = 'No description available';
-            imgElement.addEventListener('click', function () {
+
+            imgElement.addEventListener('click', () => {
                 openImageModal(imageUrl, profileLinkUrl, profileDid);
             });
 
             imageDiv.appendChild(imgElement);
             imagesContainer.appendChild(imageDiv);
 
+            // Observe only the newly created image
+            observer.observe(imgElement);
+
             totalImages++;
             updateDebugInfo();
         }
+
+        // Observe all images for lazy loading
+        document.querySelectorAll('.image-container img').forEach(img => observer.observe(img));
 
         // Open image modal
         function openImageModal(imageUrl, profileLinkUrl, profileDid) {
@@ -406,10 +488,11 @@
             modal.style.display = 'flex'; // Show modal
         }
 
-        // Fetch gallery images
+        // Fetch profile gallery images
         function fetchGalleryImages(profileUrl) {
 
-            galleryContainer.innerHTML = ''; // Clear previous content
+            // Clear previous content
+            galleryContainer.innerHTML = ''; 
 
             // Extract DID from profile URL
             const profileDid = profileUrl.split('/').pop();
@@ -422,13 +505,16 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Fetched gallery data:', data);
+
+                // Set profile link
                 galleryProfileLink.href = profileUrl;
+
+                // Append images
                 data.feed.forEach(item => {
                     if (item.post.embed && item.post.embed.images) {
                         item.post.embed.images.forEach(image => {
                             const imgElement = document.createElement('img');
-                            imgElement.src = image.thumb; // Use image.fullsize for full-size images
+                            imgElement.src = image.fullsize; // Use image.fullsize for full-size images
                             imgElement.alt = image.alt || 'User media';
                             imgElement.addEventListener('click', function () {
                                 currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img')).indexOf(imgElement);
@@ -481,28 +567,64 @@
             }
         });
 
+        // Show gallery image in modal
         function showGalleryImageInModal(imageUrl) {
             const galleryModalImage = document.getElementById('gallery-modal-image');
             const galleryImageModal = document.getElementById('gallery-image-modal');
+            const galleryModal = document.getElementById('gallery-modal');
+
+            // Remove any existing "View Full Size" button to prevent duplicates
+            const existingButton = document.querySelector('.view-gallery-full-size-button');
+            if (existingButton) {
+                existingButton.remove();
+            }
+
+            // Set the image source
             galleryModalImage.src = imageUrl;
+
+            // Wait for the image to load to access its natural dimensions
+            galleryModalImage.onload = () => {
+                const nativeWidth = galleryModalImage.naturalWidth;
+                const nativeHeight = galleryModalImage.naturalHeight;
+                const displayedWidth = galleryModalImage.clientWidth;
+                const displayedHeight = galleryModalImage.clientHeight;
+
+                console.log(`Native size: ${nativeWidth}x${nativeHeight}`);
+                console.log(`Displayed size: ${displayedWidth}x${displayedHeight}`);
+
+                // Check if the displayed size is smaller than the natural size
+                if (displayedWidth < nativeWidth || displayedHeight < nativeHeight) {
+                    // Create and display the "View Full Size" button
+                    const fullSizeButton = document.createElement('button');
+                    fullSizeButton.textContent = 'View Full Size';
+                    fullSizeButton.className = 'view-gallery-full-size-button';
+                    fullSizeButton.style.position = 'absolute';
+                    fullSizeButton.style.bottom = '20px';
+                    fullSizeButton.style.right = '20px';
+                    fullSizeButton.style.zIndex = '1000';
+                    fullSizeButton.style.padding = '10px 20px';
+
+                    fullSizeButton.addEventListener('click', () => {
+                        window.open(imageUrl, '_blank'); // Open full-size image in a new tab
+                    });
+
+                    // Append the button to the modal
+                    galleryImageModal.appendChild(fullSizeButton);
+
+                    // Dynamically enable the magnifier since the button is now present
+                    enableMagnifier(galleryModalImage);
+                } else {
+                    console.log('Image is displayed at full size');
+                }
+            };
+
+            // Show the modal
             galleryImageModal.style.display = 'flex';
-            galleryModal.style.display = 'none'; // Hide gallery modal
+            galleryModal.style.display = 'none'; // Hide the gallery modal
         }
 
-        // Navigate gallery images with arrow keys or WASD
-        document.addEventListener('keydown', function (event) {
-            if (galleryImageModal.style.display === 'flex') {
-                if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
-                    navigateGalleryImage(1);
-                } else if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
-                    navigateGalleryImage(-1);
-                } else if (event.key === 'Escape') {
-                    closeGalleryImageModal();
-                }
-            }
-        });
-
         function navigateGalleryImage(direction) {
+
             // Dynamically select all gallery images
             const galleryImagesArray = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
             
@@ -536,6 +658,28 @@
         });
 
         document.addEventListener('keydown', function (event) {
+
+            // view full size image
+            if(event.key === 'f' || event.key === ' ') {
+                if (galleryImageModal.style.display === 'flex') {
+                    const fullSizeButton = document.querySelector('.view-gallery-full-size-button');
+                    if (fullSizeButton) {
+                        fullSizeButton.click();
+                    }
+                }
+            }
+
+            // Navigate gallery images with arrow keys or WASD
+            if (galleryImageModal.style.display === 'flex') {
+                if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
+                    navigateGalleryImage(1);
+                } else if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
+                    navigateGalleryImage(-1);
+                } else if (event.key === 'Escape') {
+                    closeGalleryImageModal();
+                }
+            }
+
             // Check if the Enter/Return or Space bar is pressed
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault(); // Prevent default action like scrolling
@@ -555,26 +699,102 @@
                 }
             }
 
-            // Handle Tab and Shift+Tab for navigation
-            if (galleryModal.style.display === 'flex') {
-                const focusableImages = Array.from(galleryContainer.querySelectorAll('img'));
-                let currentIndex = focusableImages.indexOf(document.activeElement);
-
-                if (event.key === 'Tab') {
-                    event.preventDefault(); // Prevent default tabbing behavior
-
-                    if (event.shiftKey) {
-                        // Shift+Tab: Move focus to the previous image
-                        currentIndex = (currentIndex - 1 + focusableImages.length) % focusableImages.length;
-                    } else {
-                        // Tab: Move focus to the next image
-                        currentIndex = (currentIndex + 1) % focusableImages.length;
-                    }
-
-                    focusableImages[currentIndex].focus();
-                }
-            }
         });
+
+        // Set default for image sizes
+        imageSizeSlider.value = imageSize;
+        sliderValueDisplay.textContent = imageSize;
+
+        // Scale images with slider values
+        imageSizeSlider.addEventListener('input', function () {
+            const newSize = `${this.value}px`;
+            sliderValueDisplay.textContent = this.value; // Update displayed value
+            const imageContainers = document.querySelectorAll('.image-container'); // Select containers on each input
+            imageContainers.forEach(container => {
+                container.style.height = newSize;
+                const img = container.querySelector('img');
+                if (img) {
+                    img.style.height = newSize;
+                }
+            });
+
+            // Update grid-template-columns to allow wrapping
+            const imagesContainer = document.getElementById('images-container');
+            imagesContainer.style.gridAutoRows = newSize; // Set the height
+            imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${newSize}, 1fr))`;
+        });
+
+        function enableMagnifier(imageElement) {
+            const magnifier = document.getElementById('magnifier');
+
+            // Check if the "View Full Size" button is present and visible
+            const fullSizeButton = document.querySelector('.view-gallery-full-size-button');
+            if (!fullSizeButton || fullSizeButton.style.display === 'none') {
+                magnifier.style.display = 'none'; // Ensure magnifier is hidden
+                return; // Exit if the button is not shown
+            }
+
+            // Remove previous event listeners to avoid duplication
+            imageElement.onmouseenter = null;
+            imageElement.onmouseleave = null;
+            imageElement.onmousemove = null;
+
+            // Show the magnifier when the mouse enters the image only if it is scaled
+            imageElement.onmouseenter = () => {
+                const isScaledDown =
+                    imageElement.clientWidth < imageElement.naturalWidth ||
+                    imageElement.clientHeight < imageElement.naturalHeight;
+
+                if (isScaledDown) {
+                    magnifier.style.display = 'block';
+                    const nativeWidth = imageElement.naturalWidth;
+                    const nativeHeight = imageElement.naturalHeight;
+
+                    magnifier.style.backgroundImage = `url('${imageElement.src}')`;
+                    magnifier.style.backgroundSize = `${nativeWidth}px ${nativeHeight}px`;
+                } else {
+                    magnifier.style.display = 'none'; // Ensure magnifier remains hidden
+                }
+            };
+
+            // Hide the magnifier when the mouse leaves the image
+            imageElement.onmouseleave = () => {
+                magnifier.style.display = 'none';
+            };
+
+            // Update magnifier position and background on mouse move only if scaled
+            imageElement.onmousemove = (event) => {
+                const isScaledDown =
+                    imageElement.clientWidth < imageElement.naturalWidth ||
+                    imageElement.clientHeight < imageElement.naturalHeight;
+
+                if (!isScaledDown) {
+                    magnifier.style.display = 'none';
+                    return; // Exit if the image is not scaled down
+                }
+
+                const rect = imageElement.getBoundingClientRect();
+                const mouseX = event.clientX - rect.left;
+                const mouseY = event.clientY - rect.top;
+
+                const scaleX = imageElement.naturalWidth / imageElement.clientWidth;
+                const scaleY = imageElement.naturalHeight / imageElement.clientHeight;
+
+                const nativeX = mouseX * scaleX;
+                const nativeY = mouseY * scaleY;
+
+                magnifier.style.backgroundPosition = `-${nativeX - 256}px -${nativeY - 256}px`;
+                magnifier.style.left = `${event.clientX - 256}px`;
+                magnifier.style.top = `${event.clientY - 256}px`;
+            };
+        }
+
+        // Call the function on your modal image
+        const galleryModalImage = document.getElementById('gallery-modal-image');
+        galleryModalImage.addEventListener('load', () => {
+            enableMagnifier(galleryModalImage);
+        });
+
     });
         
     </script>

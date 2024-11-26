@@ -343,7 +343,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         // Settings and variables - move these to the top
         const settings = typeof window.settings === 'object' ? window.settings : {};
-        let token = "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJFUzI1NksifQ.eyJzY29wZSI6ImNvbS5hdHByb3RvLmFjY2VzcyIsInN1YiI6ImRpZDpwbGM6dmR5NnlzbnE3bTJwb2VwazU2dXNyYTNzIiwiaWF0IjoxNzMyNTQ5MjM1LCJleHAiOjE3MzI1NTY0MzUsImF1ZCI6ImRpZDp3ZWI6c2hpaXRha2UudXMtZWFzdC5ob3N0LmJza3kubmV0d29yayJ9.wcxq7lpILSvigjs--uU4CrUDjCMpCmpLrchSNhq1iP20kiyqu8ebXglYcvBOoTOwghkVuuWPRZIxG__rpD_5Qg";
+        let token = null;
         let refreshToken = null;
         let imageSize = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
         let launchWarning = typeof settings.launchWarning === 'boolean' ? settings.launchWarning : true;

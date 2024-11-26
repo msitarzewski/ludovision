@@ -82,9 +82,9 @@ To enable the full gallery view of an image owner's account:
 
 ## Content Warning Modal
 <img src="samples/warning.png" alt="The content warning modal" title="Warning" width="450">
-- `OK` to load the feed  
-- `CANCEL` to be redirected to Bluesky  
-> *Note: You can override this warning in settings.js*
+`OK` to load the feed<br>
+`CANCEL` to be redirected to Bluesky<br>
+Note: You can override this warning in settings.js
 
 ## The Feed
 <img src="samples/feed.png" alt="Screen shot of the basic feed" title="The Feed" width="450">
@@ -102,9 +102,33 @@ Click any image to open the Feed Image modal.
 ## Feed Image Modal
 <img src="samples/feed-image.png" alt="Screen shot of an image modal" title="The Image Modal" width="450">
 The selected image is scaled to fit the current viewport.
+
 `View Profile` to open Bluesky to the user's profile page
+
 If Bluesky authentication is enabled, you can also click `View Gallery` to see the rest of the images in the user's profile.
-*Note: You can use the space bar to launch the Gallery View. ESC will close the current modal*
+
+Note: You can use the space bar to launch the Gallery View. ESC will close the current modal
+
+## Gallery View
+<img src="samples/gallery.png" alt="Screen shot of a user's media gallery" title="The Gallery Modal" width="450">
+All images are loaded from the current image owner's account. They're presented in 128px/128px.
+
+Click any image to view.
+
+`Close` (or ESC) to close the modal
+
+`View Profile` to open Bluesky to the user's profile page
+
+Note: You can use the space bar to launch the Gallery Image Modal with the first image. ESC will close the current modal.
+
+## Gallery View
+<img src="samples/gallery-image.png" alt="Screen shot of an image from the gallery" title="The Gallery Image Modal" width="450">
+<img src="samples/gallery-image-zoom.png" alt="Screen shot of an image from the gallery with zoom" title="The Gallery Image Modal Zoomed" width="450">
+The selected Gallery image is displayed within the current viewport. Tapping space or clicking `View Full Image` will open the image in a new tab if the image is scaled. In addition, a magnifying area will follow the cursor. This can be disabled in settings.js.
+
+`L/R Arrows and W/D` keys navigate the images from the gallery while in Gallery Image Mode.
+
+`Close` (or ESC) to close the modal
 
 ## 🎯 Future Goals
 

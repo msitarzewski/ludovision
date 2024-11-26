@@ -73,7 +73,7 @@ To enable the full gallery view of an image owner's account:
 1. Locate the `token` variable in the ssettings.js file (see aboce).
 2. Replace null with your Bluesky bearer token.
    ```javascript
-   const token = null;
+   token: null;
    ```
    > *Note: Your Bluesky bearer token can be found in your account settings or by inspecting API calls made by the platform.*
 

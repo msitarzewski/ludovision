@@ -21,6 +21,9 @@ const feedPaused = false;
 // Feed order
 const newestFirst = false;
 
+// Use local storage for settings
+const useLocalStorage = false;
+
 // Settings object
 const settings = {
     imageSize: imageSize,
@@ -31,6 +34,7 @@ const settings = {
     newestFirst: newestFirst,
     feedDelay: feedDelay,
     feedPaused: feedPaused,
+    useLocalStorage: useLocalStorage,
 }
     
 window.settings = settings;

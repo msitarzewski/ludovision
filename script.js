@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
     // Settings and variables - move these to the top
     const settings = typeof window.settings === 'object' ? window.settings : {};
+
     let token = null;
     let refreshToken = null;
     let imageSize = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
@@ -35,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const galleryImageModal = document.getElementById('gallery-image-modal');
     const galleryImages = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
     const imageSizeSlider = document.getElementById('image-size-slider');
-    const sliderValueDisplay = document.getElementById('slider-value');
+    const imageSizeInput = document.getElementById('image-size-input');
     const magnifierElement = document.getElementById('magnifier');
 
     // warning modal
@@ -470,25 +471,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Set default for image sizes
     imageSizeSlider.value = imageSize;
-    sliderValueDisplay.textContent = imageSize;
+    imageSizeInput.value = imageSize;
 
     // Scale images with slider values
-    imageSizeSlider.addEventListener('input', function () {
-        const newSize = `${this.value}px`;
-        sliderValueDisplay.textContent = this.value; // Update displayed value
+    updateImageSize(imageSize);
+
+    function updateImageSize(newSize) {
+        const sizeInPx = `${newSize}px`;
         const imageContainers = document.querySelectorAll('.image-container'); // Select containers on each input
         imageContainers.forEach(container => {
-            container.style.height = newSize;
+            container.style.height = sizeInPx;
             const img = container.querySelector('img');
             if (img) {
-                img.style.height = newSize;
+                img.style.height = sizeInPx;
             }
         });
 
         // Update grid-template-columns to allow wrapping
         const imagesContainer = document.getElementById('images-container');
-        imagesContainer.style.gridAutoRows = newSize; // Set the height
-        imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${newSize}, 1fr))`;
+        imagesContainer.style.gridAutoRows = sizeInPx; // Set the height
+        imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${sizeInPx}, 1fr))`;
+    }
+
+    imageSizeSlider.addEventListener('input', function () {
+        const newSize = this.value;
+        imageSizeInput.value = newSize; // Sync input field
+        updateImageSize(newSize);
+    });
+
+    imageSizeInput.addEventListener('input', function () {
+        const newSize = this.value;
+        imageSizeSlider.value = newSize; // Sync slider
+        updateImageSize(newSize);
     });
 
     function enableMagnifier(imageElement) {
@@ -607,6 +621,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (tokens) {
                 // Store tokens for use
                 token = tokens.accessJwt;
+                expiresIn = tokens.expiresIn;
                 refreshToken = tokens.refreshJwt;
 
                 // Show the view all media button
@@ -644,23 +659,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Start the authentication process
     handleAuthentication();
 
-    // Add a toggle button to the header
-    const headerDiv = document.getElementById('header');
-    const toggleContainer = document.createElement('div');
-    toggleContainer.className = 'slider-container';
-    toggleContainer.innerHTML = `
-        <label for="sort-toggle">
-            <input type="checkbox" id="sort-toggle" ${newestFirst ? 'checked' : ''}>
-            Newest First
-        </label>
-    `;
-
-    // Insert the toggle before the debug info
-    const debugInfo = document.getElementById('debug-info');
-    headerDiv.insertBefore(toggleContainer, debugInfo);
+    const sortToggle = document.getElementById('sort-toggle');
+    sortToggle.checked = newestFirst;
 
     // Add event listener for the toggle
-    document.getElementById('sort-toggle').addEventListener('change', function(e) {
+    sortToggle.addEventListener('change', function(e) {
         newestFirst = e.target.checked;
         
         // Reverse the order of existing images
@@ -668,69 +671,16 @@ document.addEventListener('DOMContentLoaded', function () {
         images.reverse().forEach(img => imagesContainer.appendChild(img));
     });
 
-    // Add some CSS for the toggle
-    const style = document.createElement('style');
-    style.textContent = `
-        #sort-toggle {
-            margin-right: 5px;
-            vertical-align: middle;
-        }
-        
-        .slider-container label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Create speed control container first
-    const speedContainer = document.createElement('div');
-    speedContainer.className = 'slider-container';
-    speedContainer.innerHTML = `
-        <label for="speed-slider">
-            Feed Delay: <span id="speed-value">${feedDelay}</span>ms
-            <input type="range" id="speed-slider" min="0" max="2000" value="${feedDelay}" step="100">
-        </label>
-    `;
-
-    // Insert the speed control into header
-    headerDiv.insertBefore(speedContainer, debugInfo);
-
     // Now we can safely get the elements and add the event listener
     const speedSlider = document.getElementById('speed-slider');
     const speedValue = document.getElementById('speed-value');
+    speedSlider.value = speedValue.textContent = feedDelay;
 
     speedSlider.addEventListener('input', function(e) {
         feedDelay = parseInt(e.target.value);
         speedValue.textContent = feedDelay;
         imageQueue.setDelay(feedDelay);
     });
-
-    // Add CSS for the speed slider
-    style.textContent += `
-        #speed-slider {
-            width: 150px;
-            margin: 0 10px;
-            vertical-align: middle;
-        }
-        
-        .slider-container {
-            margin: 0 15px;
-        }
-    `;
-
-    // Add after the speed container
-    const pauseContainer = document.createElement('div');
-    pauseContainer.className = 'slider-container';
-    pauseContainer.innerHTML = `
-        <button id="pause-button" class="control-button">
-            ${feedPaused ? 'Resume' : 'Pause'} Feed
-        </button>
-    `;
-
-    // Insert the pause control after the speed control
-    headerDiv.insertBefore(pauseContainer, debugInfo);
 
     // Add pause button event listener
     const pauseButton = document.getElementById('pause-button');
@@ -743,39 +693,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update skip button visibility
         skipButton.style.display = !feedPaused && imageQueue.pending.length > 0 ? 'block' : 'none';
     });
-
-    // Add CSS for the pause button
-    style.textContent += `
-        .control-button {
-            padding: 5px 15px;
-            background-color: #4a5568;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        .control-button:hover {
-            background-color: #2d3748;
-        }
-        
-        #pause-button {
-            min-width: 120px;
-        }
-    `;
-
-    // Add after the pause container creation
-    const skipContainer = document.createElement('div');
-    skipContainer.className = 'slider-container';
-    skipContainer.innerHTML = `
-        <button id="skip-button" class="control-button" style="display: none;">
-            Skip Queue (${imageQueue.pending.length})
-        </button>
-    `;
-
-    // Insert the skip control after the pause control
-    headerDiv.insertBefore(skipContainer, debugInfo);
 
     // Add skip button functionality
     const skipButton = document.getElementById('skip-button');
@@ -797,19 +714,8 @@ document.addEventListener('DOMContentLoaded', function () {
         NotificationService.show(`Skipped ${skippedCount} images`);
     });
 
-    // Add CSS for the skip button
-    style.textContent += `
-        #skip-button {
-            background-color: #e53e3e;
-            margin-left: 10px;
-        }
-        
-        #skip-button:hover {
-            background-color: #c53030;
-        }
-    `;
-
     class ModalManager {
+
         static closeAll() {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => modal.style.display = 'none');
@@ -829,12 +735,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 modal.style.display = 'none';
             }
         }
+
     }
 
     // Use it in event listeners
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
-            ModalManager.closeAll();
+            //ModalManager.closeAll();
+        }
+    });
+
+    document.addEventListener('keyup', function(event) {
+        // Ensure modals is a NodeList
+        const modals = document.querySelectorAll('.modal');
+        
+        // Convert NodeList to an array to use array methods
+        const modalIsShowing = Array.from(modals).some(modal => modal.style.display !== 'none');
+        
+        if (!modalIsShowing) {
+            const imageSizeSlider = document.getElementById('image-size-slider');
+            const imageSizeInput = document.getElementById('image-size-input');
+            let newSize = parseInt(imageSizeSlider.value);
+
+            if (event.key === 'ArrowRight') { // arrow right
+                newSize = Math.min(newSize + 32, 512); // Increase size, max 512
+            } else if (event.key === 'ArrowLeft') { // arrow left
+                newSize = Math.max(newSize - 32, 32); // Decrease size, min 32
+            }
+
+            imageSizeSlider.value = newSize;
+            imageSizeInput.value = newSize;
+            updateImageSize(newSize);
         }
     });
 

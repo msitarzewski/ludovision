@@ -740,8 +740,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Use it in event listeners
     document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            //ModalManager.closeAll();
+        if (event.key === '`') {
+            ModalManager.closeAll();
         }
     });
 

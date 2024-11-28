@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let newestFirst = typeof settings.newestFirst === 'boolean' ? settings.newestFirst : false;
     let feedDelay = typeof settings.feedDelay === 'number' ? settings.feedDelay : 0;
     let feedPaused = typeof settings.feedPaused === 'boolean' ? settings.feedPaused : false;
+    let inactivityTimeout = typeof settings.inactivityTimeout === 'number' ? settings.inactivityTimeout : null;
     let pendingImages = [];
     let totalImages = 0;
     let currentGalleryImageIndex = 0;
@@ -38,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const imageSizeSlider = document.getElementById('image-size-slider');
     const imageSizeInput = document.getElementById('image-size-input');
     const magnifierElement = document.getElementById('magnifier');
+    const hamburgerMenu = document.getElementById('hamburger-menu');
+    const settingsContainer = document.getElementById('settings-container');
 
     // warning modal
     if(launchWarning) {
@@ -427,6 +430,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('keydown', function (event) {
 
+        // Close all modals
+        if (event.key === '`') {
+            ModalManager.closeAll();
+        }
+
+        // Restart feed
+        if (event.key.toLowerCase() === 'r') {
+            restartFeed();
+        }
+
         // view full size image
         if(event.key === 'f' || event.key === ' ') {
             if (galleryImageModal.style.display === 'flex') {
@@ -612,27 +625,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to handle token creation and renewal
     async function handleAuthentication() {
-        if (bsky_identifier && bsky_appPassword) {
+        if (settings.manualToken) {
+            console.log('Using manually specified token.');
+            token = settings.manualToken;
+            viewAllMediaButton.style.display = 'block';
+        } else if (settings.bsky_identifier && settings.bsky_appPassword) {
             console.log('Starting authentication...');
 
-            // Attempt to create a session
-            const tokens = await createSession();
+            if (!token || Date.now() >= tokenExpirationTime) {
+                console.log('Token expired or not available, creating a new session...');
+                const tokens = await createSession();
 
-            if (tokens) {
-                // Store tokens for use
-                token = tokens.accessJwt;
-                expiresIn = tokens.expiresIn;
-                refreshToken = tokens.refreshJwt;
+                if (tokens) {
+                    token = tokens.accessJwt;
+                    expiresIn = tokens.expiresIn;
+                    refreshToken = tokens.refreshJwt;
 
-                // Show the view all media button
-                viewAllMediaButton.style.display = 'block';
+                    tokenExpirationTime = Date.now() + (expiresIn * 1000);
 
-                console.log('Session token:', tokens.accessJwt);
+                    viewAllMediaButton.style.display = 'block';
+                    console.log('Session token:', tokens.accessJwt);
 
-                // Schedule token renewal before expiration
-                scheduleTokenRenewal(tokens);
+                    scheduleTokenRenewal(tokens);
+                } else {
+                    console.error('Failed to obtain tokens.');
+                }
             } else {
-                console.error('Failed to obtain tokens.');
+                console.log('Token is still valid.');
             }
         } else {
             console.warn('No credentials provided. Authentication skipped.');
@@ -738,13 +757,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
-    // Use it in event listeners
-    document.addEventListener('keydown', function(event) {
-        if (event.key === '`') {
-            ModalManager.closeAll();
-        }
-    });
-
     document.addEventListener('keyup', function(event) {
         // Ensure modals is a NodeList
         const modals = document.querySelectorAll('.modal');
@@ -768,5 +780,119 @@ document.addEventListener('DOMContentLoaded', function () {
             updateImageSize(newSize);
         }
     });
+
+    const restartButton = document.getElementById('restart-button');
+
+    restartButton.addEventListener('click', function() {
+        restartFeed();
+    });
+
+    function restartFeed() {
+
+        // Clear images
+        imagesContainer.innerHTML = '';
+        totalImages = 0;
+        updateDebugInfo();
+
+        // Close existing WebSocket connection if needed
+        if (socket) {
+            socket.close();
+        }
+
+        // Re-establish WebSocket connection
+        setupWebSocket();
+        
+    }
+
+    // Toggle settings menu
+    hamburgerMenu.addEventListener('click', function () {
+        const isVisible = settingsContainer.style.display === 'flex';
+        settingsContainer.style.display = isVisible ? 'none' : 'flex';
+        if (!isVisible) {
+            settingsContainer.style.display = 'flex';
+        }
+    });
+
+    // Hide header after inactivity
+    // let inactivityTimer;
+    // function resetInactivityTimeout() {
+    //     clearTimeout(inactivityTimer);
+    //     header.style.display = 'flex';
+    //     inactivityTimer = setTimeout(() => {
+    //         header.style.display = 'none';
+    //     }, inactivityTimeout);
+    // }
+
+    // if(inactivityTimeout !== null) {
+
+    //     // Reset inactivity timer on user interaction
+    //     document.addEventListener('mousemove', resetInactivityTimeout);
+    //     document.addEventListener('keydown', resetInactivityTimeout);
+    //     document.addEventListener('scroll', resetInactivityTimeout);
+    //     resetInactivityTimeout(); // Initialize the timeout
+
+    // }
+
+    // Add touch event listener for images
+    document.querySelectorAll('.image-container img').forEach(img => {
+        img.addEventListener('touchstart', () => {
+            openImageModal(img.dataset.src, img.dataset.profileLinkUrl, img.dataset.profileDid);
+        });
+    });
+
+    // Add touch event listener for the images container
+    imagesContainer.addEventListener('touchstart', (event) => {
+        const img = event.target.closest('img');
+        if (img) {
+            openImageModal(img.dataset.src, img.dataset.profileLinkUrl, img.dataset.profileDid);
+        }
+    });
+
+    // Function to check if the device is mobile
+    function isMobileDevice() {
+        // Detect mobile device with viewport width
+        return window.innerWidth < 768;
+    }
+
+    // Function to handle header visibility based on mouse movement and scrolling
+    function handleHeaderVisibility() {
+
+        if(window.innerWidth < 768) {
+            showHeader();
+            return;
+        }
+
+        let mouseStillTimer;
+        let lastMousePosition = { x: 0, y: 0 };
+
+        // Show header when mouse is still
+        function showHeader() {
+            header.style.display = 'flex';
+        }
+
+        // Hide header when mouse is moving or scrolling
+        function hideHeader() {
+            header.style.display = 'none';
+        }
+
+        // Detect scrolling and wheel events
+        const hideOnScrollOrWheel = () => {
+            if (!isMobileDevice()) {
+                hideHeader();
+                clearTimeout(mouseStillTimer);
+                mouseStillTimer = setTimeout(showHeader, 500); // Show header after 1 second of stillness
+            }
+        };
+
+        document.addEventListener('scroll', hideOnScrollOrWheel);
+        document.addEventListener('wheel', hideOnScrollOrWheel);
+
+    }
+
+    // Initialize header visibility handling
+    handleHeaderVisibility();
+
+    // Add event listener for the window resize event
+    window.addEventListener('resize', handleHeaderVisibility);
 
 });

@@ -3,6 +3,9 @@
 const bsky_identifier = null;
 const bsky_appPassword = null;
 
+// Manually specified token
+const manualToken = null;
+
 // Default feed image size
 const imageSize = 128;
 
@@ -14,6 +17,9 @@ const magnifier = true;
 
 // Feed speed in milliseconds (1000 = 1 second delay)
 const feedDelay = 0;
+
+// Inactivity timeout in milliseconds (0 = no timeout)
+const inactivityTimeout = 10000;
 
 // Feed starts in running state
 const feedPaused = false;
@@ -31,10 +37,12 @@ const settings = {
     magnifier: magnifier,
     bsky_identifier: bsky_identifier,
     bsky_appPassword: bsky_appPassword,
+    manualToken: manualToken,
     newestFirst: newestFirst,
     feedDelay: feedDelay,
     feedPaused: feedPaused,
     useLocalStorage: useLocalStorage,
+    inactivityTimeout: inactivityTimeout
 }
     
 window.settings = settings;

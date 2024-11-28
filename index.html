@@ -27,30 +27,50 @@
 
     <div id="header">
         <h1>Ludovision</h1>
-        <div class="slider-container">
-            <label for="image-size-slider">Image Size: </label>
-            <input type="number" id="image-size-input" min="32" max="512" value="128" step="32" style="width: 50px;">
-            <input type="range" id="image-size-slider" min="32" max="512" value="128" step="32">
-        </div>
-        <div class="sort-toggle">
-            <label for="sort-toggle">
-                <input type="checkbox" id="sort-toggle"> Newest First
-            </label>
-        </div>
-
-        <div class="speed-slider">
-            <label for="speed-slider">
-                Feed Delay: <span id="speed-value">0</span>ms
-                <input type="range" id="speed-slider" min="0" max="2000" value="0" step="100">
-            </label>
-        </div>
-        <div class="pause-button">
-            <button id="pause-button" class="control-button">Pause Feed</button>
-        </div>
-        <div class="skip-button">
-            <button id="skip-button" class="control-button">Skip</button>
+        <div id="settings-container" class="settings-menu">
+            <div class="form-container">
+                <div class="form-header">Settings</div>
+                <div class="form-group">
+                    <label for="image-size-slider" class="form-label">Image Size:</label>
+                    <div class="form-inputs">
+                        <input type="number" id="image-size-input" min="32" max="512" value="128" step="32" class="form-control">
+                        <input type="range" id="image-size-slider" min="32" max="512" value="128" step="32" class="form-control-range">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="sort-toggle" class="form-label">Newest First:</label>
+                    <div class="form-inputs">
+                        <input type="checkbox" id="sort-toggle" class="form-check-input">Yes
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="speed-slider" class="form-label">Feed Delay (<span id="speed-value">0</span>ms):</label>
+                    <div class="form-inputs">
+                        <input type="range" id="speed-slider" min="0" max="2000" value="0" step="100" class="form-control-range">
+                    </div>
+                </div>
+                <div class="form-group button-group">
+                    <button id="pause-button" class="btn btn-primary">Pause Feed</button>
+                    <button id="skip-button" class="btn btn-danger">Skip</button>
+                    <button id="restart-button" class="btn btn-secondary">Restart Feed</button>
+                </div>
+            </div>
         </div>
         <div id="debug-info"></div>
+        <button id="hamburger-menu" class="hamburger-menu">
+            <?xml version="1.0" encoding="UTF-8"?>
+            <svg width="32px" height="32px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                <title>Menu</title>
+                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                    <g id="Menu">
+                        <rect id="Rectangle" fill-rule="nonzero" x="0" y="0" width="24" height="24"></rect>
+                        <line x1="5" y1="7" x2="19" y2="7" id="Path" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                        <line x1="5" y1="17" x2="19" y2="17" id="Path" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                        <line x1="5" y1="12" x2="19" y2="12" id="Path" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                    </g>
+                </g>
+            </svg>
+        </button>
     </div>
 
     <div id="images-container">

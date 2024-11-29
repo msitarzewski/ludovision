@@ -114,6 +114,19 @@ button {
     margin-top: 20px;
 }
 
+#warning-text a {
+    color: white;
+    text-decoration: none;
+}
+
+#warning-text a:hover {
+    text-decoration: underline;
+}
+
+#warning-text a:visited {
+    color: #ddd;
+}
+
 .modal-buttons {
     display: flex;
     justify-content: center;

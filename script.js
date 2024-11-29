@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Use imageQueue.add instead of appendImage
                     images.forEach(image => {
                         const link = image.image.ref['$link'];
+                        const tags = image.image.tags;
                         const mimeType = image.image.mimeType.split('/')[1];
                         const imageUrl = `https://cdn.bsky.app/img/feed_thumbnail/plain/${decodedMessage.did}/${link}@${mimeType}`;
                         imageQueue.add({ imageUrl, profileLinkUrl, profileDid });

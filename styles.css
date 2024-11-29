@@ -97,7 +97,7 @@ button {
     display: none;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.9);
     z-index: 1000;
 }
 
@@ -437,21 +437,48 @@ input[type="text"].form-control {
     display: #333;
 }
 
+input[type="range"] {
+    padding: 15px;
+    font-size: 16px;
+}
+
 @media (max-width: 768px) {
+
+    #warning-modal {
+        max-width: 90%;
+        padding: 10px;
+        top: unset;
+        position: absolute;
+        bottom: unset;
+        overflow-y: unset;
+    }
+
+    #warning-text {
+        width: 100%;
+    }
+
+    #launch-warning-checkbox {
+        margin-right: 10px;
+    }
 
     .hamburger-menu {
         display: block; /* Show on smaller screens */
     }
     .settings-menu {
-        position: fixed;
+        position: absolute;
         top: 55px;
-        right: 25px;
-        width: 100%;
+        right: 15px;
+        left: 0;
+        width: 90%;
+        max-width: unset;
+        min-width: unset;
         background-color: rgba(255, 255, 255, 1);
         z-index: 1000;
-        padding: 25px;
+        padding: 15px;
         box-sizing: border-box;
-        overflow-y: auto;
+        bottom: unset;
+        overflow-y: unset;
+        /* overflow-y: auto; */
     }
 
     .form-container {
@@ -460,10 +487,43 @@ input[type="text"].form-control {
 
     .form-inputs {
         flex-direction: row;
+        margin-top: 5px;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        border: 1px solid lightgray;
+        /* width: 100%; */
+        padding: 10px;
+        border-radius: 5px;
     }
 
-    .form-group {
-        margin-bottom: 10px;
+    .form-label {
+        flex: unset;
+        font-size: 1em;
+        font-weight: 600;
+    }
+
+    input[type="range"] {
+        padding: 0px;
+    }
+
+    #gallery-modal .grid {
+        max-width: 95%;
+    }
+
+}
+
+@media (max-width: 480px) {
+    #warning-modal {
+        left: 10px;
+        right: 10px;
+    }
+    .settings-menu {
+        right: 0;
     }
 }
 
@@ -520,11 +580,6 @@ input[type="text"].form-control {
     background-color: #5a6268;
 }
 
-input[type="range"] {
-    padding: 15px;
-    font-size: 16px;
-}
-
 .modal {
     position: fixed;
     top: 0;
@@ -578,4 +633,8 @@ input[type="range"] {
 
 .modal-footer > button {
     margin: 0px;
+}
+
+.view-gallery-full-size-button {
+    color: #333;
 }

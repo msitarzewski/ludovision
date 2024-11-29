@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const profileLink = document.getElementById('profile-link');
     const galleryProfileLink = document.getElementById('gallery-profile-link');
     const viewAllMediaButton = document.getElementById('view-all-media-button');
+    const galleryInstructionsModal = document.getElementById('instructions-modal');
+    const closeInstructionsButton = document.getElementById('close-instructions-button');
     const galleryContainer = document.querySelector('#gallery-modal .grid');
     const galleryImageModal = document.getElementById('gallery-image-modal');
     const galleryImages = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
@@ -41,6 +43,77 @@ document.addEventListener('DOMContentLoaded', function () {
     const magnifierElement = document.getElementById('magnifier');
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const settingsContainer = document.getElementById('settings-container');
+
+    const identifierInput = document.getElementById('bsky-identifier');
+    const appPasswordInput = document.getElementById('bsky-app-password');
+    const authButton = document.getElementById('auth-button');
+    const clearButton = document.getElementById('clear-button');
+
+    // Load stored credentials and tokens if localStorage is enabled
+    if (settings.useLocalStorage) {
+        identifierInput.value = localStorage.getItem('bsky_identifier') || '';
+        appPasswordInput.value = localStorage.getItem('bsky_appPassword') || '';
+        token = localStorage.getItem('bsky_token') || null;
+        refreshToken = localStorage.getItem('bsky_refreshToken') || null;
+        tokenExpirationTime = parseInt(localStorage.getItem('bsky_tokenExpirationTime')) || 0;
+    }
+
+    // Validate app password format
+    function isValidAppPassword(password) {
+        const regex = /^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/;
+        return regex.test(password);
+    }
+
+    // Save credentials and attempt authentication
+    function saveCredentialsAndAuthenticate() {
+        const identifier = identifierInput.value.trim();
+        const appPassword = appPasswordInput.value.trim();
+
+        console.log('Retrieved Identifier:', identifier);
+        console.log('Retrieved App Password:', appPassword);
+
+        if (!isValidAppPassword(appPassword)) {
+            alert('Invalid app password format. Please use xxxx-xxxx-xxxx-xxxx.');
+            return;
+        }
+
+        if (settings.useLocalStorage) {
+            localStorage.setItem('bsky_identifier', identifier);
+            localStorage.setItem('bsky_appPassword', appPassword);
+        }
+
+        settings.bsky_identifier = identifier;
+        settings.bsky_appPassword = appPassword;
+
+        handleAuthentication();
+    }
+
+    // Clear credentials and tokens
+    function clearCredentials() {
+        identifierInput.value = '';
+        appPasswordInput.value = '';
+        if (settings.useLocalStorage) {
+            localStorage.removeItem('bsky_identifier');
+            localStorage.removeItem('bsky_appPassword');
+            localStorage.removeItem('bsky_token');
+            localStorage.removeItem('bsky_refreshToken');
+            localStorage.removeItem('bsky_tokenExpirationTime');
+        }
+        settings.bsky_identifier = null;
+        settings.bsky_appPassword = null;
+        token = null;
+        refreshToken = null;
+        tokenExpirationTime = 0;
+        clearButton.style.display = 'none';
+        authButton.style.display = 'inline-block';
+        console.log('Credentials and tokens cleared.');
+    }
+
+    // Add event listener to the "Auth" button
+    authButton.addEventListener('click', saveCredentialsAndAuthenticate);
+
+    // Add event listener to the "Clear" button
+    clearButton.addEventListener('click', clearCredentials);
 
     // warning modal
     if(launchWarning) {
@@ -54,7 +127,6 @@ document.addEventListener('DOMContentLoaded', function () {
     imagesContainer.style.gridAutoRows = `${imageSize}px`; // Set the height
     imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${imageSize}px, 1fr))`;
 
-    
     // Warning modal handlers
     okButton.addEventListener('click', function () {
         warningModal.style.display = 'none';
@@ -77,13 +149,6 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             window.open(event.target.href, '_blank');
         }
-    });
-
-    // Open gallery modal
-    viewAllMediaButton.addEventListener('click', function () {
-        modal.style.display = 'none'; // Close image modal
-        fetchGalleryImages(profileLink.href); // Fetch images
-        galleryModal.style.display = 'flex'; // Open gallery modal
     });
 
     // Move the ImageQueue class definition to before its first use
@@ -369,11 +434,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const fullSizeButton = document.createElement('button');
                 fullSizeButton.textContent = 'View Full Size';
                 fullSizeButton.className = 'view-gallery-full-size-button';
-                fullSizeButton.style.position = 'absolute';
-                fullSizeButton.style.bottom = '20px';
-                fullSizeButton.style.right = '20px';
-                fullSizeButton.style.zIndex = '1000';
-                fullSizeButton.style.padding = '10px 20px';
 
                 fullSizeButton.addEventListener('click', () => {
                     window.open(imageUrl, '_blank'); // Open full-size image in a new tab
@@ -603,8 +663,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    identifier: bsky_identifier,
-                    password: bsky_appPassword,
+                    identifier: settings.bsky_identifier,
+                    password: settings.bsky_appPassword,
                 }),
             });
 
@@ -625,12 +685,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to handle token creation and renewal
     async function handleAuthentication() {
-        if (settings.manualToken) {
+        if (settings.manualToken !== null) {
             console.log('Using manually specified token.');
             token = settings.manualToken;
             viewAllMediaButton.style.display = 'block';
+            clearButton.style.display = 'none';
+            authButton.style.display = 'none';
+        } else if (token && Date.now() < tokenExpirationTime) {
+            console.log('Using stored token.');
+            viewAllMediaButton.style.display = 'block';
+            clearButton.style.display = 'inline-block';
+            authButton.style.display = 'none';
         } else if (settings.bsky_identifier && settings.bsky_appPassword) {
-            console.log('Starting authentication...');
+            console.log('Starting authentication with Bluesky credentials:', settings.bsky_identifier, settings.bsky_appPassword);
 
             if (!token || Date.now() >= tokenExpirationTime) {
                 console.log('Token expired or not available, creating a new session...');
@@ -643,7 +710,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     tokenExpirationTime = Date.now() + (expiresIn * 1000);
 
+                    if (settings.useLocalStorage) {
+                        localStorage.setItem('bsky_token', token);
+                        localStorage.setItem('bsky_refreshToken', refreshToken);
+                        localStorage.setItem('bsky_tokenExpirationTime', tokenExpirationTime.toString());
+                    }
+
                     viewAllMediaButton.style.display = 'block';
+                    clearButton.style.display = 'inline-block';
+                    authButton.style.display = 'none';
                     console.log('Session token:', tokens.accessJwt);
 
                     scheduleTokenRenewal(tokens);
@@ -652,6 +727,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {
                 console.log('Token is still valid.');
+                clearButton.style.display = 'inline-block';
+                authButton.style.display = 'none';
             }
         } else {
             console.warn('No credentials provided. Authentication skipped.');
@@ -813,26 +890,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Hide header after inactivity
-    // let inactivityTimer;
-    // function resetInactivityTimeout() {
-    //     clearTimeout(inactivityTimer);
-    //     header.style.display = 'flex';
-    //     inactivityTimer = setTimeout(() => {
-    //         header.style.display = 'none';
-    //     }, inactivityTimeout);
-    // }
-
-    // if(inactivityTimeout !== null) {
-
-    //     // Reset inactivity timer on user interaction
-    //     document.addEventListener('mousemove', resetInactivityTimeout);
-    //     document.addEventListener('keydown', resetInactivityTimeout);
-    //     document.addEventListener('scroll', resetInactivityTimeout);
-    //     resetInactivityTimeout(); // Initialize the timeout
-
-    // }
-
     // Add touch event listener for images
     document.querySelectorAll('.image-container img').forEach(img => {
         img.addEventListener('touchstart', () => {
@@ -894,5 +951,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add event listener for the window resize event
     window.addEventListener('resize', handleHeaderVisibility);
+
+    // Event listener for the "View Gallery" button
+    viewAllMediaButton.addEventListener('click', function () {
+        
+        // Hide the image modal
+        modal.style.display = 'none';
+
+        if (token === null) {
+            // Show the instructions modal
+            galleryInstructionsModal.style.display = 'flex';
+        } else {
+            // Show the gallery
+            fetchGalleryImages(profileLink.href); // Fetch images
+            galleryModal.style.display = 'flex'; // Show the gallery modal
+        }
+    });
+
+    // Event listener to close the instructions modal
+    closeInstructionsButton.addEventListener('click', function () {
+        galleryInstructionsModal.style.display = 'none';
+        modal.style.display = 'flex'; // Show the image modal
+    });
 
 });

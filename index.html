@@ -49,6 +49,20 @@
                         <input type="range" id="speed-slider" min="0" max="2000" value="0" step="100" class="form-control-range">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label for="bsky-identifier" class="form-label">Bluesky Identifier:</label>
+                    <div class="form-inputs">
+                        <input type="text" id="bsky-identifier" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bsky-app-password" class="form-label">App Password:</label>
+                    <div class="form-inputs">
+                        <input type="password" id="bsky-app-password" class="form-control" placeholder="xxxx-xxxx-xxxx-xxxx">
+                        <button id="auth-button" class="form-control">Auth</button>
+                        <button id="clear-button" class="form-control" style="display: none;">Clear</button>
+                    </div>
+                </div>
                 <div class="form-group button-group">
                     <button id="pause-button" class="btn btn-primary">Pause Feed</button>
                     <button id="skip-button" class="btn btn-danger">Skip</button>
@@ -98,6 +112,25 @@
     <div id="gallery-image-modal" class="modal" style="display: none;">
         <img id="gallery-modal-image" alt="Full-size gallery image" style="max-width: 90%; max-height: 90%;">
         <div id="magnifier" style="display: none;"></div>
+    </div>
+
+    <div id="instructions-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">App Password Required</div>
+            <div class="modal-body">
+                <p>
+                    This button would normally be used to view the gallery - every image this user has posted on Bluesky.
+                </p>
+                <p>
+                    To view the gallery, you need to create an app password and enter it in either the settings
+                    file or the settings menu. Follow the instructions on the <a href="https://bsky.app/settings/app-passwords" target="_blank">Bluesky App Passwords page</a>
+                    to create an app password.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button id="close-instructions-button" class="btn btn-danger">Close</button>
+            </div>
+        </div>
     </div>
     
 </body>

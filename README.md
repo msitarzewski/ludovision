@@ -49,7 +49,7 @@ To use Ludovision locally, clone the repository and open the `index.html` file i
 
 ### Installation
 
-**QUICK START: No installation is required. Download the zip, decompress, and open index.html (prefferably in a private window). That's it.**
+**QUICK START: No installation is required. Download the zip, decompress, and open index.html (preferrably in a private window). That's it.**
 
 1. Clone this repository:
    ```bash

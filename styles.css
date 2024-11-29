@@ -127,6 +127,10 @@ button {
     color: #ddd;
 }
 
+#launch-warning-checkbox {
+    margin-right: 5px;
+}
+
 .modal-buttons {
     display: flex;
     justify-content: center;

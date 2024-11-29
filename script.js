@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {    
         
     // Settings and variables - move these to the top
     const settings = typeof window.settings === 'object' ? window.settings : {};
@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const header = document.getElementById('header');
     const warningModal = document.getElementById('warning-modal');
     const okButton = document.getElementById('ok-button');
+    const launchWarningCheckbox = document.getElementById('launch-warning-checkbox');
     const cancelButton = document.getElementById('cancel-button');
     const galleryModal = document.getElementById('gallery-modal');
     const closeGalleryButton = document.getElementById('close-gallery-button');
@@ -130,9 +131,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Warning modal handlers
     okButton.addEventListener('click', function () {
-        warningModal.style.display = 'none';
-        header.style.display = 'flex';
-        setupWebSocket(); // Call WebSocket setup
+        if(launchWarningCheckbox.checked) {
+            warningModal.style.display = 'none';
+            header.style.display = 'flex';
+            setupWebSocket(); // Call WebSocket setup
+        } else {
+            alert('You must accept the disclaimer to continue.');
+        }
     });
 
     cancelButton.addEventListener('click', function () {

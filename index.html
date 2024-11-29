@@ -12,15 +12,22 @@
         <div>
             <h1>WARNING</h1>
             <p id="warning-text" style="text-transform: uppercase;">
-                You are viewing raw image data directly from the Bluesky firehose. This data INCLUDES unfiltered, unmoderated, and potentially sensitive content. Viewer discretion is advised. Proceed only if you are prepared to encounter images that have not been reviewed for appropriateness or relevance.
+                You are viewing raw image data directly from the Bluesky firehose. This data INCLUDES unfiltered, unmoderated, and sensitive content. Viewer discretion is advised. Proceed only if you are prepared to encounter images that have not been reviewed for appropriateness or relevance. You agree that you are of a legal age to view this content.
             </p>
             <p id="warning-text">
-                <strong></strong>Disclaimer:</strong><br>
+                <strong>Disclaimer:</strong><br>
                 The creator of this tool assumes no responsibility for the content accessed through this service. Any inappropriate use, redistribution, or exploitation of the data is strictly prohibited. By continuing, you agree to hold the creator harmless from any liability arising from your use of this data.
             </p>
             <p id="warning-text">
-                Note: This tool and its instructions are open source and available on <a href="https://github.com/msitarzewski/ludovision" target="_blank">GitHub</a>.
+                This tool and its instructions are open source and available on <a href="https://github.com/msitarzewski/ludovision" target="_blank">GitHub</a>.
             </p>
+            <p id="warning-text" style="color: red;">
+                NOTE: PRIVATE BROWSING MODE IS RECOMMENDED. Private browsing prevents images from being stored on your device and will reside in memory only.
+            </p>
+            <div class="form-group">
+                <input type="checkbox" id="launch-warning-checkbox">
+                <label for="launch-warning-checkbox">I understand and accept the above disclaimer</label>
+            </div>
             <div class="modal-buttons">
                 <button id="ok-button">OK</button>
                 <button id="cancel-button">Cancel</button>

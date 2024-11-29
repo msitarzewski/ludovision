@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let newestFirst = typeof settings.newestFirst === 'boolean' ? settings.newestFirst : false;
     let feedDelay = typeof settings.feedDelay === 'number' ? settings.feedDelay : 0;
     let feedPaused = typeof settings.feedPaused === 'boolean' ? settings.feedPaused : false;
+    let useLocalStorage = typeof settings.useLocalStorage === 'boolean' ? settings.useLocalStorage : false;
     let inactivityTimeout = typeof settings.inactivityTimeout === 'number' ? settings.inactivityTimeout : null;
     let pendingImages = [];
     let totalImages = 0;
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const clearButton = document.getElementById('clear-button');
 
     // Load stored credentials and tokens if localStorage is enabled
-    if (settings.useLocalStorage) {
+    if (useLocalStorage) {
         identifierInput.value = localStorage.getItem('bsky_identifier') || '';
         appPasswordInput.value = localStorage.getItem('bsky_appPassword') || '';
         token = localStorage.getItem('bsky_token') || null;
@@ -685,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to handle token creation and renewal
     async function handleAuthentication() {
-        if (settings.manualToken !== null) {
+        if (settings.manualToken !== null && typeof settings.manualToken !== 'undefined') {
             console.log('Using manually specified token.');
             token = settings.manualToken;
             viewAllMediaButton.style.display = 'block';

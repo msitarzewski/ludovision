@@ -23,7 +23,7 @@ button {
 }
 
 #header {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.9);
     color: white;
     display: none;
     justify-content: space-between;
@@ -371,6 +371,14 @@ label {
     border-radius: 5px;
 }
 
+.close-settings-button {
+    padding: 5px;
+    margin: 0px;
+    height: 24px;
+    width: 24px;
+    cursor: pointer;
+    float: right;
+}
 
 
 .form-header {
@@ -401,6 +409,7 @@ label {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
+    padding: 10px 0px;
 }
 
 .form-group:last-child {
@@ -423,7 +432,12 @@ label {
     color: #495057;
 }
 
-input[type="text"].form-control {
+button.form-control {
+    margin: 0px;
+    font-size: .75em;
+}
+
+input[type="text"].form-control, input[type="password"].form-control {
     width: 100%;
     padding: 5px 10px;
 }
@@ -437,9 +451,26 @@ input[type="text"].form-control {
     display: #333;
 }
 
-input[type="range"] {
+/* input[type="range"] {
     padding: 15px;
     font-size: 16px;
+} */
+
+.blurred {
+    filter: blur(8px);
+}
+
+#auth-container {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #495057;
+}
+
+#auth-container .form-group {
+    padding: 0px;
 }
 
 @media (max-width: 768px) {
@@ -501,15 +532,23 @@ input[type="range"] {
         border-radius: 5px;
     }
 
+    #auth-container .form-group {
+        border: none;
+    }
+
+    .button-group {
+        flex-direction: row;
+    }
+
     .form-label {
         flex: unset;
         font-size: 1em;
         font-weight: 600;
     }
 
-    input[type="range"] {
+    /* input[type="range"] {
         padding: 0px;
-    }
+    } */
 
     #gallery-modal .grid {
         max-width: 95%;
@@ -527,9 +566,9 @@ input[type="range"] {
     }
 }
 
-.form-control-range {
+/* .form-control-range {
     width: 100%;
-}
+} */
 
 .form-check-input {
     margin-right: 5px;
@@ -578,6 +617,11 @@ input[type="range"] {
 
 .btn-secondary:hover {
     background-color: #5a6268;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.875rem;
 }
 
 .modal {

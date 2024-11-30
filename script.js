@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let imageSize = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
     let launchWarning = typeof settings.launchWarning === 'boolean' ? settings.launchWarning : true;
     let magnifier = typeof settings.magnifier === 'boolean' ? settings.magnifier : true;
+    let blurUnwanted = typeof settings.blurUnwanted === 'boolean' ? settings.blurUnwanted : true;
     let newestFirst = typeof settings.newestFirst === 'boolean' ? settings.newestFirst : false;
     let feedDelay = typeof settings.feedDelay === 'number' ? settings.feedDelay : 0;
     let feedPaused = typeof settings.feedPaused === 'boolean' ? settings.feedPaused : false;
@@ -16,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let pendingImages = [];
     let totalImages = 0;
     let currentGalleryImageIndex = 0;
+    
+    // List of unwanted labels
+    const unwantedLabels = ["porn", "gore", "nudity", "graphic-media"];
 
     // Bluesky credentials
     let bsky_identifier = typeof settings.bsky_identifier === 'string' ? settings.bsky_identifier : null;
@@ -45,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const magnifierElement = document.getElementById('magnifier');
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const settingsContainer = document.getElementById('settings-container');
+    const closeSettingsButton = document.getElementById('close-settings-button');
 
     const identifierInput = document.getElementById('bsky-identifier');
     const appPasswordInput = document.getElementById('bsky-app-password');
@@ -71,8 +76,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const identifier = identifierInput.value.trim();
         const appPassword = appPasswordInput.value.trim();
 
-        console.log('Retrieved Identifier:', identifier);
-        console.log('Retrieved App Password:', appPassword);
+        //console.log('Retrieved Identifier:', identifier);
+        //console.log('Retrieved App Password:', appPassword);
 
         if (!isValidAppPassword(appPassword)) {
             alert('Invalid app password format. Please use xxxx-xxxx-xxxx-xxxx.');
@@ -108,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
         tokenExpirationTime = 0;
         clearButton.style.display = 'none';
         authButton.style.display = 'inline-block';
-        console.log('Credentials and tokens cleared.');
+        //console.log('Credentials and tokens cleared.');
     }
 
     // Add event listener to the "Auth" button
@@ -227,43 +232,116 @@ document.addEventListener('DOMContentLoaded', function () {
     imageQueue.delay = feedDelay;
     imageQueue.paused = feedPaused;
 
+    // Function to check labels and determine if content should be filtered
+    function hasUnwantedLabel(labels, unwantedLabels) {
+
+        if(!blurUnwanted) {
+            return false;
+        }
+
+        let hasUnwanted = false;
+        let hasSystemUnwanted = false;
+        let hasSelfUnwanted = false;
+
+        if(labels.length) {
+            // const hasUnwanted = labels.values.some(label => unwantedLabels.includes(label.val));
+            const hasUnwanted = labels.some(label => unwantedLabels.includes(label));
+            if (hasUnwanted) {
+                //console.log('System unwanted label:', labels.values);
+                return true;
+            }
+        }
+
+        // Check system labels (if labels.values exists)
+        if (labels?.values?.length) {
+            const hasSystemUnwanted = labels.values.some(label => unwantedLabels.includes(label.val));
+            if (hasSystemUnwanted) {
+                //console.log('System unwanted label:', labels.values);
+                return true;
+            }
+        }
+    
+        // Check self labels (if labels.values exists inside selfLabels)
+        if (labels?.selfLabels?.values?.length) {
+            const hasSelfUnwanted = labels.selfLabels.values.some(label => unwantedLabels.includes(label.val));
+            if (hasSelfUnwanted) {
+                //console.log('Self unwanted label:', labels.selfLabels.values);
+                return true;
+            }
+        }
+    
+        return hasUnwanted || hasSystemUnwanted || hasSelfUnwanted;
+
+    }
+
     // WebSocket setup
     function setupWebSocket() {
         const socket = new WebSocket('wss://jetstream1.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post');
-
-        socket.addEventListener('message', function (event) {
+    
+        // Throttle function
+        function throttle(func, limit) {
+            let inThrottle;
+            return function (...args) {
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => (inThrottle = false), limit);
+                }
+            };
+        }
+    
+        // Throttle the WebSocket message handling
+        const throttledMessageHandler = throttle(function (event) {
             try {
+
                 imagesContainer.style.display = 'grid';
                 const decodedMessage = JSON.parse(event.data);
+    
+                // Check for unwanted labels
+                const labels = decodedMessage.commit?.record?.labels || [];
+
+                // if (hasUnwantedLabel(labels, unwantedLabels)) {
+                //     console.log("Filtered message due to unwanted label:", labels);
+                //     return; // Skip this message
+                // }
+    
                 if (
                     decodedMessage.commit &&
                     decodedMessage.commit.record &&
                     decodedMessage.commit.record.embed &&
                     decodedMessage.commit.record.embed.images
                 ) {
-                    // Get images and profile DID
                     const images = decodedMessage.commit.record.embed.images;
                     const profileDid = decodedMessage.did;
                     const profileLinkUrl = `https://bsky.app/profile/${decodedMessage.did}`;
-
-                    // Use imageQueue.add instead of appendImage
+    
                     images.forEach(image => {
+
                         const link = image.image.ref['$link'];
                         const tags = image.image.tags;
                         const mimeType = image.image.mimeType.split('/')[1];
                         const imageUrl = `https://cdn.bsky.app/img/feed_thumbnail/plain/${decodedMessage.did}/${link}@${mimeType}`;
-                        imageQueue.add({ imageUrl, profileLinkUrl, profileDid });
+    
+                        // Example: Blur content (optional)
+                        blurred = hasUnwantedLabel(labels, unwantedLabels);
+
+                        // console.log('labels', labels, 'blurred', blurred);
+                        imageQueue.add({ imageUrl, profileLinkUrl, profileDid, blurred });
                     });
                 }
             } catch (error) {
                 console.error('Error parsing WebSocket message:', error);
             }
-        });
-
+        }, 0); // Adjust the limit as needed
+    
+        // Use the throttled handler for WebSocket messages
+        socket.addEventListener('message', throttledMessageHandler);
+    
         socket.addEventListener('open', function () {
             console.log('WebSocket connection established');
         });
-
+    
         socket.addEventListener('close', function () {
             console.log('WebSocket connection closed');
         });
@@ -288,12 +366,22 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Immediate append function (original appendImage logic)
-    function appendImageImmediate({ imageUrl, profileLinkUrl, profileDid }) {
+    function appendImageImmediate({ imageUrl, profileLinkUrl, profileDid, blurred }) {
         const imageDiv = document.createElement('div');
         imageDiv.className = 'image-container';
 
         const imgElement = document.createElement('img');
         imgElement.dataset.src = imageUrl;
+        if(blurred) {
+            //console.log('blurred');
+            imgElement.classList.add('blurred');
+            imgElement.addEventListener('mouseout', function () {
+                imgElement.classList.add('blurred');
+            });
+            imgElement.addEventListener('mouseover', function () {
+                imgElement.classList.remove('blurred');
+            });
+        }
         imgElement.alt = 'No description available';
 
         imgElement.addEventListener('click', () => {
@@ -324,6 +412,11 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.style.display = 'flex'; // Show modal
     }
 
+    // Preprocess gallery labels
+    function preprocessGalleryLabels(labels) {
+        return labels.map(label => label.val);
+    }
+
     // Fetch profile gallery images
     function fetchGalleryImages(profileUrl) {
 
@@ -352,6 +445,18 @@ document.addEventListener('DOMContentLoaded', function () {
                         const imgElement = document.createElement('img');
                         imgElement.src = image.fullsize; // Use image.fullsize for full-size images
                         imgElement.alt = image.alt || 'User media';
+                        // Preprocess gallery labels and check for unwanted labels
+                        const processedLabels = preprocessGalleryLabels(item.post.labels);
+                        const blurred = hasUnwantedLabel(processedLabels, unwantedLabels);
+                        if(blurred) {
+                            imgElement.classList.add('blurred');
+                            imgElement.addEventListener('mouseout', function () {
+                                imgElement.classList.add('blurred');
+                            });
+                            imgElement.addEventListener('mouseover', function () {
+                                imgElement.classList.remove('blurred');
+                            });
+                        }
                         imgElement.addEventListener('click', function () {
                             currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img')).indexOf(imgElement);
                             showGalleryImageInModal(imgElement.src);
@@ -371,14 +476,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .finally(() => {
-            console.log('Gallery images loaded.');
+            //log('Gallery images loaded.');
         });
     }
 
     // Update debug info
     function updateDebugInfo() {
         const debugInfo = document.getElementById('debug-info');
-        debugInfo.textContent = `${totalImages} images loaded${imageQueue.pending.length > 0 ? ` (${imageQueue.pending.length} pending)` : ''}`;
+        debugInfo.textContent = `${totalImages} images${imageQueue.pending.length > 0 ? ` (${imageQueue.pending.length} pending)` : ''}`;
         
         // Update skip button visibility and text when feed is active
         const skipButton = document.getElementById('skip-button');
@@ -452,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Dynamically enable the magnifier since the button is now present
                 enableMagnifier(galleryModalImage);
             } else {
-                console.log('Image is displayed at full size');
+                //console.log('Image is displayed at full size');
             }
         };
 
@@ -558,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateImageSize(newSize) {
         const sizeInPx = `${newSize}px`;
-        const imageContainers = document.querySelectorAll('.image-container'); // Select containers on each input
+        const imageContainers = document.querySelectorAll('.image-container');
         imageContainers.forEach(container => {
             container.style.height = sizeInPx;
             const img = container.querySelector('img');
@@ -567,10 +672,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Update grid-template-columns to allow wrapping
-        const imagesContainer = document.getElementById('images-container');
-        imagesContainer.style.gridAutoRows = sizeInPx; // Set the height
-        imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${sizeInPx}, 1fr))`;
+        requestAnimationFrame(() => {
+            imagesContainer.style.gridAutoRows = sizeInPx;
+            imagesContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${sizeInPx}, 1fr))`;
+        });
     }
 
     imageSizeSlider.addEventListener('input', function () {
@@ -683,7 +788,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Parse and return the response as JSON
             const tokens = await response.json();
-            console.log('Authentication successful. Tokens:', tokens);
+            //console.log('Authentication successful. Tokens:', tokens);
             return tokens;
         } catch (error) {
             console.error('Error during session creation:', error.message);
@@ -726,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     viewAllMediaButton.style.display = 'block';
                     clearButton.style.display = 'inline-block';
                     authButton.style.display = 'none';
-                    console.log('Session token:', tokens.accessJwt);
+                    //console.log('Session token:', tokens.accessJwt);
 
                     scheduleTokenRenewal(tokens);
                 } else {
@@ -897,11 +1002,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    closeSettingsButton.addEventListener('click', function () {
+        settingsContainer.style.display = 'none';
+    });
+
+    const blurToggle = document.getElementById('blur-toggle');
+    blurToggle.checked = blurUnwanted;
+
+    blurToggle.addEventListener('change', function(e) {
+        blurUnwanted = e.target.checked;
+    });
+
     // Add touch event listener for images
     document.querySelectorAll('.image-container img').forEach(img => {
         img.addEventListener('touchstart', () => {
             openImageModal(img.dataset.src, img.dataset.profileLinkUrl, img.dataset.profileDid);
-        });
+        }, { passive: true });
     });
 
     // Add touch event listener for the images container

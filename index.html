@@ -45,45 +45,59 @@
     <div id="header">
         <h1>Ludovision</h1>
         <div id="settings-container" class="settings-menu">
+            <!-- close button-->
             <div class="form-container">
+                <button id="close-settings-button" class="close-settings-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
                 <div class="form-header">Settings</div>
                 <div class="form-group">
-                    <label for="image-size-slider" class="form-label">Image Size:</label>
+                    <label for="image-size-slider" class="form-label">Image Size</label>
                     <div class="form-inputs">
                         <input type="number" id="image-size-input" min="32" max="512" value="128" step="32" class="form-control">
                         <input type="range" id="image-size-slider" min="32" max="512" value="128" step="32" class="form-control-range">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="sort-toggle" class="form-label">Newest First:</label>
+                    <label for="sort-toggle" class="form-label">Newest First</label>
                     <div class="form-inputs">
                         <input type="checkbox" id="sort-toggle" class="form-check-input">Yes
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="speed-slider" class="form-label">Feed Delay (<span id="speed-value">0</span>ms):</label>
+                    <label for="blur-toggle" class="form-label">Blur Unwanted</label>
+                    <div class="form-inputs">
+                        <input type="checkbox" id="blur-toggle" class="form-check-input">Yes
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="speed-slider" class="form-label">Feed Delay (<span id="speed-value">0</span>ms)</label>
                     <div class="form-inputs">
                         <input type="range" id="speed-slider" min="0" max="2000" value="0" step="100" class="form-control-range">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="bsky-identifier" class="form-label">Bluesky Identifier:</label>
-                    <div class="form-inputs">
-                        <input type="text" id="bsky-identifier" class="form-control">
+                <div id="auth-container">
+                    <div class="form-group">
+                        <label for="bsky-identifier" class="form-label">Bluesky Identifier</label>
+                        <div class="form-inputs">
+                            <input type="text" id="bsky-identifier" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bsky-app-password" class="form-label">App Password</label>
+                        <div class="form-inputs">
+                            <input type="password" id="bsky-app-password" class="form-control" placeholder="xxxx-xxxx-xxxx-xxxx">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-inputs" style="display: flex; justify-content: end;">
+                            <button id="auth-button" class="form-control">Auth</button>
+                            <button id="clear-button" class="form-control" style="display: none;">Clear</button>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="bsky-app-password" class="form-label">App Password:</label>
-                    <div class="form-inputs">
-                        <input type="password" id="bsky-app-password" class="form-control" placeholder="xxxx-xxxx-xxxx-xxxx">
-                        <button id="auth-button" class="form-control">Auth</button>
-                        <button id="clear-button" class="form-control" style="display: none;">Clear</button>
-                    </div>
-                </div>
-                <div class="form-group button-group">
-                    <button id="pause-button" class="btn btn-primary">Pause Feed</button>
-                    <button id="skip-button" class="btn btn-danger">Skip</button>
-                    <button id="restart-button" class="btn btn-secondary">Restart Feed</button>
+                <div class="button-group">
+                    <button id="pause-button" class="btn btn-sm btn-primary">Pause Feed</button>
+                    <button id="skip-button" class="btn btn-sm btn-danger">Skip</button>
+                    <button id="restart-button" class="btn btn-sm btn-secondary">Restart Feed</button>
                 </div>
             </div>
         </div>

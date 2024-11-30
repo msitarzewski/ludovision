@@ -15,6 +15,9 @@ const launchWarning = true;
 // Magnifier in Gallery view
 const magnifier = true;
 
+// Blur images with unwanted labels
+const blurUnwanted = true;
+
 // Feed speed in milliseconds (1000 = 1 second delay)
 const feedDelay = 0;
 
@@ -35,6 +38,7 @@ const settings = {
     imageSize: imageSize,
     launchWarning: launchWarning,
     magnifier: magnifier,
+    blurUnwanted: blurUnwanted,
     bsky_identifier: bsky_identifier,
     bsky_appPassword: bsky_appPassword,
     manualToken: manualToken,

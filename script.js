@@ -152,6 +152,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Close gallery modal
     closeGalleryButton.addEventListener('click', function () {
         galleryModal.style.display = 'none';
+        isGalleryOpen = false;
+        if (galleryLoadingAbortController) {
+            galleryLoadingAbortController.abort();
+            galleryLoadingAbortController = null;
+        }
+        galleryObservers.forEach(observer => observer.disconnect());
+        galleryObservers = [];
     });
 
     // Open profile in new tab
@@ -361,8 +368,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }, {
         root: null, // Default to the viewport
-        rootMargin: "0px", // Load the image when it enters the viewport
-        threshold: 0.1 // Trigger when 10% of the image is visible
+        rootMargin: "100px", // Load the image when it enters the viewport
+        threshold: 0.05 // Trigger when 5% of the image is visible
     });
 
     // Immediate append function (original appendImage logic)
@@ -417,66 +424,414 @@ document.addEventListener('DOMContentLoaded', function () {
         return labels.map(label => label.val);
     }
 
-    // Fetch profile gallery images
-    function fetchGalleryImages(profileUrl) {
+    // Global variables for gallery loading control
+    let isGalleryOpen = false;
+    let galleryLoadingAbortController = null;
+    let galleryObservers = [];
+    let isLoadingMoreGalleryImages = false;
+    let currentGalleryProfileUrl = null;
+    let lastGalleryCursor = null;
 
-        // Clear previous content
-        galleryContainer.innerHTML = ''; 
+    // Fetch profile gallery images
+    function fetchGalleryImages(profileUrl, cursor = null, retryCount = 0) {
+        // If gallery is closed, don't fetch images
+        if (!isGalleryOpen) {
+            console.log('Gallery closed, aborting image fetch');
+            return Promise.resolve(); // Return resolved promise
+        }
+
+        // Store current profile URL for potential scroll-based loading
+        if (!cursor) {
+            currentGalleryProfileUrl = profileUrl;
+            lastGalleryCursor = null;
+        }
+
+        // Set loading flag
+        isLoadingMoreGalleryImages = true;
+
+        // Create a new abort controller for this fetch
+        if (!galleryLoadingAbortController) {
+            galleryLoadingAbortController = new AbortController();
+        }
+        const signal = galleryLoadingAbortController.signal;
+
+        // If this is the first call (no cursor), clear the container
+        if (!cursor) {
+            galleryContainer.innerHTML = ''; 
+            
+            // Add initial loading indicator
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.textContent = 'Loading images...';
+            loadingIndicator.style.textAlign = 'center';
+            loadingIndicator.style.padding = '10px';
+            loadingIndicator.style.gridColumn = '1 / -1';
+            loadingIndicator.id = 'gallery-loading-indicator';
+            galleryContainer.appendChild(loadingIndicator);
+        }
 
         // Extract DID from profile URL
         const profileDid = profileUrl.split('/').pop();
 
-        fetch(`https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${profileDid}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
+        // Build URL with pagination
+        let url = `https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${profileDid}&limit=25`;
+        if (cursor) {
+            url += `&cursor=${cursor}`;
+        }
 
-            // Set profile link
-            galleryProfileLink.href = profileUrl;
+        // Calculate delay based on retry count (exponential backoff)
+        const delay = retryCount > 0 ? Math.min(2000 * Math.pow(1.5, retryCount - 1), 10000) : 0;
+        
+        // Return a promise that resolves when the fetch completes
+        return new Promise((resolve, reject) => {
+            // Set a timeout that can be cleared if gallery is closed
+            const timeoutId = setTimeout(() => {
+                // Check again if gallery is still open before making the fetch
+                if (!isGalleryOpen) {
+                    console.log('Gallery closed during delay, aborting image fetch');
+                    isLoadingMoreGalleryImages = false;
+                    resolve(); // Resolve the promise
+                    return;
+                }
 
-            // Append images
-            data.feed.forEach(item => {
-                if (item.post.embed && item.post.embed.images) {
-                    item.post.embed.images.forEach(image => {
-                        const imgElement = document.createElement('img');
-                        imgElement.src = image.fullsize; // Use image.fullsize for full-size images
-                        imgElement.alt = image.alt || 'User media';
-                        // Preprocess gallery labels and check for unwanted labels
-                        const processedLabels = preprocessGalleryLabels(item.post.labels);
-                        const blurred = hasUnwantedLabel(processedLabels, unwantedLabels);
-                        if(blurred) {
-                            imgElement.classList.add('blurred');
-                            imgElement.addEventListener('mouseout', function () {
-                                imgElement.classList.add('blurred');
-                            });
-                            imgElement.addEventListener('mouseover', function () {
-                                imgElement.classList.remove('blurred');
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    signal: signal
+                })
+                .then(response => {
+                    if (response.status === 429) {
+                        throw new Error('Rate limited. Trying again with longer delay...');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Check if gallery is still open
+                    if (!isGalleryOpen) {
+                        console.log('Gallery closed after fetch, aborting processing');
+                        isLoadingMoreGalleryImages = false;
+                        resolve(); // Resolve the promise
+                        return;
+                    }
+
+                    // Set profile link (only on first page)
+                    if (!cursor) {
+                        galleryProfileLink.href = profileUrl;
+                        
+                        // Remove initial loading indicator
+                        const initialIndicator = document.getElementById('gallery-loading-indicator');
+                        if (initialIndicator) {
+                            initialIndicator.remove();
+                        }
+                    }
+
+                    // Create an IntersectionObserver for lazy loading
+                    const galleryObserver = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const img = entry.target;
+                                const dataSrc = img.getAttribute('data-src');
+                                if (dataSrc) {
+                                    img.src = dataSrc;
+                                    img.removeAttribute('data-src');
+                                }
+                                observer.unobserve(img);
+                            }
+                        });
+                    }, {
+                        root: null, // Use viewport as root for better detection
+                        rootMargin: '100px 0px', // Load when image is 100px from viewport
+                        threshold: 0.05 // Require just 5% of the image to be visible
+                    });
+                    
+                    // Store the observer for cleanup
+                    galleryObservers.push(galleryObserver);
+
+                    // Track if we found any images in this batch
+                    let imagesFoundInBatch = 0;
+                    
+                    // Create a set to track image URLs we've already added
+                    const existingImageUrls = new Set();
+                    
+                    // First, collect all existing image URLs to avoid duplicates
+                    if (cursor) {
+                        galleryContainer.querySelectorAll('img').forEach(img => {
+                            const src = img.getAttribute('data-src') || img.src;
+                            if (src && !src.includes('data:image/svg+xml')) {
+                                existingImageUrls.add(src);
+                            }
+                        });
+                    }
+
+                    // Append images
+                    data.feed.forEach(item => {
+                        if (item.post.embed && item.post.embed.images) {
+                            item.post.embed.images.forEach(image => {
+                                // Skip if we already have this image
+                                if (image.fullsize && existingImageUrls.has(image.fullsize)) {
+                                    console.log('Skipping duplicate image:', image.fullsize);
+                                    return;
+                                }
+                                
+                                // Add to our tracking set
+                                if (!image.fullsize) {
+                                    console.warn('Image missing fullsize URL:', image);
+                                    return;
+                                }
+                                
+                                existingImageUrls.add(image.fullsize);
+                                
+                                imagesFoundInBatch++;
+                                const imgElement = document.createElement('img');
+                                // Use a placeholder initially
+                                imgElement.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E';
+                                // Store the actual image URL as a data attribute
+                                imgElement.setAttribute('data-src', image.fullsize);
+                                imgElement.alt = image.alt || 'User media';
+                                imgElement.style.minHeight = '128px'; // Ensure placeholder takes space
+                                
+                                // Preprocess gallery labels and check for unwanted labels
+                                const processedLabels = preprocessGalleryLabels(item.post.labels);
+                                const blurred = hasUnwantedLabel(processedLabels, unwantedLabels);
+                                if(blurred) {
+                                    imgElement.classList.add('blurred');
+                                    imgElement.addEventListener('mouseout', function () {
+                                        imgElement.classList.add('blurred');
+                                    });
+                                    imgElement.addEventListener('mouseover', function () {
+                                        imgElement.classList.remove('blurred');
+                                    });
+                                }
+                                
+                                imgElement.addEventListener('click', function () {
+                                    // Ensure image is loaded before showing in modal
+                                    if (imgElement.getAttribute('data-src')) {
+                                        imgElement.src = imgElement.getAttribute('data-src');
+                                        imgElement.removeAttribute('data-src');
+                                    }
+                                    currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img')).indexOf(imgElement);
+                                    showGalleryImageInModal(imgElement.src);
+                                });
+                                
+                                galleryContainer.appendChild(imgElement);
+                                
+                                // Observe the image for lazy loading
+                                galleryObserver.observe(imgElement);
                             });
                         }
-                        imgElement.addEventListener('click', function () {
-                            currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img')).indexOf(imgElement);
-                            showGalleryImageInModal(imgElement.src);
-                        });
-                        galleryContainer.appendChild(imgElement);
                     });
-                }
-            });
-        })
 
-        // catch expired token
-        .catch(error => {  
-            if(error.message.includes('Expired')) {
-                alert('Token expired.');
-            } else {
-                console.error('Error fetching gallery images:', error);
-            }
-        })
-        .finally(() => {
-            //log('Gallery images loaded.');
+                    // Store the cursor for potential scroll-based loading
+                    if (data.cursor) {
+                        lastGalleryCursor = data.cursor;
+                    }
+
+                    // If there's a cursor in the response and we found images, add a scroll trigger
+                    // or if we found posts but no images, continue loading immediately
+                    if (data.cursor && isGalleryOpen) {
+                        if (imagesFoundInBatch > 0) {
+                            // Create a sentinel observer to detect when user scrolls near bottom
+                            // We'll use the last image as our sentinel instead of adding a new element
+                            const lastImage = galleryContainer.querySelector('img:last-of-type');
+                            
+                            if (lastImage) {
+                                // First, disconnect any existing sentinel observers to prevent multiple triggers
+                                galleryObservers = galleryObservers.filter(observer => {
+                                    if (observer._isSentinelObserver) {
+                                        observer.disconnect();
+                                        return false;
+                                    }
+                                    return true;
+                                });
+                                
+                                // Create a sentinel observer to detect when user scrolls to bottom
+                                const sentinelObserver = new IntersectionObserver((entries) => {
+                                    entries.forEach(entry => {
+                                        if (entry.isIntersecting && !isLoadingMoreGalleryImages && isGalleryOpen) {
+                                            // User has scrolled to near the bottom, load more images
+                                            console.log('Scrolled to bottom, loading more images');
+                                            
+                                            // Show the floating loading overlay
+                                            showGalleryLoadingOverlay();
+                                            
+                                            // Disconnect this observer to prevent multiple triggers
+                                            sentinelObserver.disconnect();
+                                            
+                                            // Load more after a short delay
+                                            setTimeout(() => {
+                                                // Check if gallery is still open before loading more
+                                                if (isGalleryOpen) {
+                                                    // Load more images
+                                                    fetchGalleryImages(profileUrl, lastGalleryCursor, 0);
+                                                }
+                                            }, 300);
+                                        }
+                                    });
+                                }, {
+                                    root: null,
+                                    rootMargin: '200px 0px',
+                                    threshold: 0.1
+                                });
+                                
+                                // Mark this as a sentinel observer for easy filtering later
+                                sentinelObserver._isSentinelObserver = true;
+                                
+                                // Observe the last image
+                                sentinelObserver.observe(lastImage);
+                                galleryObservers.push(sentinelObserver);
+                            }
+                        } else {
+                            // No images in this batch but we have posts, continue loading immediately
+                            setTimeout(() => {
+                                // Check if gallery is still open before loading more
+                                if (isGalleryOpen) {
+                                    // Show the floating loading overlay
+                                    showGalleryLoadingOverlay();
+                                    fetchGalleryImages(profileUrl, data.cursor, 0);
+                                }
+                            }, 300);
+                        }
+                    } else if (imagesFoundInBatch === 0 && !data.cursor && cursor) {
+                        // We've reached the end and found no images in this batch
+                        // Create a "no more images" indicator that doesn't break the grid
+                        const endMessage = document.createElement('div');
+                        endMessage.textContent = 'No more images';
+                        endMessage.style.position = 'fixed';
+                        endMessage.style.bottom = '10px';
+                        endMessage.style.left = '50%';
+                        endMessage.style.transform = 'translateX(-50%)';
+                        endMessage.style.padding = '5px 10px';
+                        endMessage.style.fontSize = '12px';
+                        endMessage.style.color = '#888';
+                        endMessage.style.background = 'rgba(255, 255, 255, 0.8)';
+                        endMessage.style.borderRadius = '10px';
+                        endMessage.style.zIndex = '999';
+                        document.body.appendChild(endMessage);
+                        
+                        // Remove the message after 3 seconds
+                        setTimeout(() => {
+                            if (endMessage.parentNode) {
+                                endMessage.parentNode.removeChild(endMessage);
+                            }
+                        }, 3000);
+                    }
+                    
+                    // Hide the loading overlay if it exists
+                    hideGalleryLoadingOverlay();
+                    
+                    // Reset loading flag
+                    isLoadingMoreGalleryImages = false;
+                    
+                    // Resolve the promise with the data
+                    resolve(data);
+                })
+                .catch(error => {
+                    // Hide the loading overlay if it exists
+                    hideGalleryLoadingOverlay();
+                    
+                    // Reset loading flag
+                    isLoadingMoreGalleryImages = false;
+                    
+                    // Check if this is an abort error (gallery closed)
+                    if (error.name === 'AbortError') {
+                        console.log('Fetch aborted due to gallery closing');
+                        resolve(); // Resolve the promise
+                        return;
+                    }
+                    
+                    console.error('Error fetching gallery images:', error);
+                    
+                    if (error.message.includes('Rate limited') && retryCount < 5 && isGalleryOpen) {
+                        // Update loading indicator to show retry status
+                        const indicator = document.getElementById('gallery-loading-indicator');
+                        if (indicator) {
+                            indicator.textContent = `Rate limited. Retrying in ${Math.round(delay/1000)} seconds...`;
+                        } else {
+                            const retryIndicator = document.createElement('div');
+                            retryIndicator.textContent = `Rate limited. Retrying in ${Math.round(delay/1000)} seconds...`;
+                            retryIndicator.style.textAlign = 'center';
+                            retryIndicator.style.padding = '10px';
+                            retryIndicator.style.gridColumn = '1 / -1';
+                            retryIndicator.style.color = '#ff6b6b';
+                            retryIndicator.id = 'gallery-loading-indicator';
+                            galleryContainer.appendChild(retryIndicator);
+                        }
+                        
+                        // Retry with exponential backoff
+                        setTimeout(() => {
+                            // Check if gallery is still open before retrying
+                            if (!isGalleryOpen) {
+                                console.log('Gallery closed during retry delay, aborting retry');
+                                return;
+                            }
+                            fetchGalleryImages(profileUrl, cursor, retryCount + 1);
+                        }, delay);
+                    } else if (error.message.includes('Expired')) {
+                        alert('Token expired. Please re-authenticate.');
+                        handleAuthentication(); // Try to refresh the token
+                    } else if (isGalleryOpen) {
+                        // Show error message only if gallery is still open
+                        // Clear any existing error messages first
+                        const existingErrors = galleryContainer.querySelectorAll('.gallery-error-message');
+                        existingErrors.forEach(el => el.remove());
+                        
+                        // Create a more user-friendly error message
+                        const errorMessage = document.createElement('div');
+                        errorMessage.className = 'gallery-error-message';
+                        errorMessage.innerHTML = `
+                            <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 5px;">Error loading images</div>
+                            <div style="font-size: 14px; margin-bottom: 10px;">${error.message || 'Connection failed'}</div>
+                            <button id="gallery-retry-button" style="padding: 5px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                        `;
+                        errorMessage.style.textAlign = 'center';
+                        errorMessage.style.padding = '20px';
+                        errorMessage.style.gridColumn = '1 / -1';
+                        errorMessage.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                        errorMessage.style.borderRadius = '8px';
+                        errorMessage.style.margin = '20px auto';
+                        errorMessage.style.maxWidth = '80%';
+                        
+                        // If this is the first load and there are no images yet, center the error
+                        if (!cursor && galleryContainer.querySelectorAll('img').length === 0) {
+                            errorMessage.style.position = 'absolute';
+                            errorMessage.style.top = '50%';
+                            errorMessage.style.left = '50%';
+                            errorMessage.style.transform = 'translate(-50%, -50%)';
+                            // Clear any loading indicators
+                            galleryContainer.innerHTML = '';
+                        }
+                        
+                        galleryContainer.appendChild(errorMessage);
+                        
+                        // Add event listener to retry button
+                        setTimeout(() => {
+                            const retryButton = document.getElementById('gallery-retry-button');
+                            if (retryButton) {
+                                retryButton.addEventListener('click', () => {
+                                    if (isGalleryOpen) {
+                                        // Remove the error message
+                                        errorMessage.remove();
+                                        // Show loading overlay
+                                        showGalleryLoadingOverlay();
+                                        // Try again
+                                        fetchGalleryImages(profileUrl, cursor, 0);
+                                    }
+                                });
+                            }
+                        }, 0);
+                    }
+                    
+                    // Reject the promise with the error
+                    reject(error);
+                });
+            }, delay);
+
+            // Store the timeout ID so it can be cleared if the gallery is closed
+            return timeoutId;
         });
     }
 
@@ -503,6 +858,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (galleryModal.style.display === 'flex') {
                 galleryModal.style.display = 'none';
+                isGalleryOpen = false;
+                if (galleryLoadingAbortController) {
+                    galleryLoadingAbortController.abort();
+                    galleryLoadingAbortController = null;
+                }
+                galleryObservers.forEach(observer => observer.disconnect());
+                galleryObservers = [];
             }
         }
     });
@@ -514,6 +876,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (event.target === galleryModal) {
             galleryModal.style.display = 'none';
+            isGalleryOpen = false;
+            if (galleryLoadingAbortController) {
+                galleryLoadingAbortController.abort();
+                galleryLoadingAbortController = null;
+            }
+            galleryObservers.forEach(observer => observer.disconnect());
+            galleryObservers = [];
         }
     });
 
@@ -576,12 +945,63 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Update the current index with wrapping logic
-        currentGalleryImageIndex = (currentGalleryImageIndex + direction + galleryImagesArray.length) % galleryImagesArray.length;
+        // Calculate the new index
+        const newIndex = currentGalleryImageIndex + direction;
+        
+        // Check if we're at the end and need to load more images
+        if (direction > 0 && newIndex >= galleryImagesArray.length && lastGalleryCursor && isGalleryOpen && !isLoadingMoreGalleryImages) {
+            // We're at the end and there are more images to load
+            console.log('Reached end of loaded images, loading more...');
+            
+            // Show loading indicator
+            showGalleryLoadingOverlay();
+            
+            // Set a flag to remember we need to navigate forward after loading
+            const pendingNavigationDirection = direction;
+            
+            // Load more images
+            isLoadingMoreGalleryImages = true;
+            fetchGalleryImages(currentGalleryProfileUrl, lastGalleryCursor, 0)
+                .then(() => {
+                    // After loading completes, try to navigate again
+                    setTimeout(() => {
+                        // Hide loading indicator
+                        hideGalleryLoadingOverlay();
+                        
+                        // Get the updated array of images
+                        const updatedImagesArray = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
+                        
+                        // If we have new images, show the next one
+                        if (updatedImagesArray.length > galleryImagesArray.length) {
+                            currentGalleryImageIndex = galleryImagesArray.length;
+                            const nextImage = updatedImagesArray[currentGalleryImageIndex];
+                            if (nextImage) {
+                                showGalleryImageInModal(nextImage.src);
+                            }
+                        } else {
+                            // No new images were loaded, wrap around to the beginning
+                            currentGalleryImageIndex = 0;
+                            const firstImage = updatedImagesArray[0];
+                            if (firstImage) {
+                                showGalleryImageInModal(firstImage.src);
+                            }
+                        }
+                    }, 300);
+                });
+            return;
+        }
+        
+        // Normal navigation with wrapping
+        currentGalleryImageIndex = (newIndex + galleryImagesArray.length) % galleryImagesArray.length;
 
         // Show the selected image in the gallery modal
         const selectedImage = galleryImagesArray[currentGalleryImageIndex];
         if (selectedImage) {
+            // Ensure image is loaded before showing in modal
+            if (selectedImage.getAttribute('data-src')) {
+                selectedImage.src = selectedImage.getAttribute('data-src');
+                selectedImage.removeAttribute('data-src');
+            }
             showGalleryImageInModal(selectedImage.src);
         } else {
             console.error('Selected image not found.');
@@ -845,6 +1265,9 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             console.warn('No credentials provided. Authentication skipped.');
         }
+        
+        // Check URL parameters after authentication is complete
+        checkUrlParamsForGallery();
     }
 
     // Function to schedule token renewal
@@ -862,6 +1285,31 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Renewing token...');
             await handleAuthentication(); // Re-authenticate to refresh tokens
         }, renewalTime);
+    }
+
+    // Function to check URL parameters and open gallery if needed
+    function checkUrlParamsForGallery() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const actorId = urlParams.get('plc');
+        
+        if (actorId) {
+            console.log('Opening gallery for actor:', actorId);
+            // Format the profile URL correctly
+            const profileUrl = `https://bsky.app/profile/did:plc:${actorId}`;
+            
+            // Open the gallery
+            isGalleryOpen = true;
+            fetchGalleryImages(profileUrl);
+            galleryModal.style.display = 'flex';
+        }
+    }
+
+    // If you're using stored credentials, also check URL params
+    if (localStorage.getItem('bsky_token') && 
+        localStorage.getItem('bsky_tokenExpirationTime') && 
+        new Date(localStorage.getItem('bsky_tokenExpirationTime')) > new Date()) {
+        // This runs when using stored credentials
+        setTimeout(checkUrlParamsForGallery, 500);
     }
 
     // Start the authentication process
@@ -1086,6 +1534,7 @@ document.addEventListener('DOMContentLoaded', function () {
             galleryInstructionsModal.style.display = 'flex';
         } else {
             // Show the gallery
+            isGalleryOpen = true; // Set flag to true BEFORE fetching images
             fetchGalleryImages(profileLink.href); // Fetch images
             galleryModal.style.display = 'flex'; // Show the gallery modal
         }
@@ -1097,4 +1546,54 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.style.display = 'flex'; // Show the image modal
     });
 
+    // Function to show the gallery loading overlay
+    function showGalleryLoadingOverlay() {
+        // Add the CSS animation if it doesn't exist
+        if (!document.getElementById('spinner-animation')) {
+            const style = document.createElement('style');
+            style.id = 'spinner-animation';
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const loadingOverlay = document.getElementById('gallery-loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+        } else {
+            const overlay = document.createElement('div');
+            overlay.id = 'gallery-loading-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.bottom = '20px';
+            overlay.style.right = '20px';
+            overlay.style.width = '40px';
+            overlay.style.height = '40px';
+            overlay.style.background = 'transparent';
+            overlay.style.display = 'flex';
+            overlay.style.justifyContent = 'center';
+            overlay.style.alignItems = 'center';
+            overlay.style.zIndex = '1000';
+            const spinner = document.createElement('div');
+            spinner.style.border = '4px solid rgba(255, 255, 255, 0.3)';
+            spinner.style.borderTop = '4px solid #3498db';
+            spinner.style.borderRadius = '50%';
+            spinner.style.width = '30px';
+            spinner.style.height = '30px';
+            spinner.style.animation = 'spin 1s linear infinite';
+            overlay.appendChild(spinner);
+            document.body.appendChild(overlay);
+        }
+    }
+
+    // Function to hide the gallery loading overlay
+    function hideGalleryLoadingOverlay() {
+        const loadingOverlay = document.getElementById('gallery-loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+    }
 });

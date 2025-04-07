@@ -6,12 +6,16 @@
 
 ## 🚀 Features
 
-- **Real-Time Streaming**: Scroll infinitely through every image posted to Bluesky in real-time.
-- **Interactive Viewer**: Click on an image to view a larger version and access the uploader's profile.
-- **Full Gallery View**: Explore the image owner's entire account gallery. *(Requires a Bluesky auth token; see instructions below.)*
-- **No Server Required**: Runs entirely client-side for full transparency—no data is collected or transmitted.
-- **No External Libraries**: No remote code loading. Privacy is respected, even in this experiment.
-- **Zero Tracking**: The tool operates without any tracking mechanisms, ensuring user anonymity.
+- **Real-Time Streaming**: Scroll infinitely through images uploaded to Bluesky in real-time.
+- **Interactive Viewer**: Click any image to view it in a larger modal with profile access.
+- **Enhanced Gallery View**: Browse a user's complete image collection with automatic pagination and continuous navigation.
+- **Lazy Loading**: Images load only when scrolled into view, optimizing bandwidth and performance.
+- **Intelligent Navigation**: When reaching the end of loaded images, more are automatically fetched.
+- **Image Deduplication**: Smart filtering prevents duplicate images from appearing in galleries.
+- **Error Recovery**: User-friendly error handling with automatic retries and clear feedback.
+- **No Server Required**: Runs entirely client-side for full transparency.
+- **Zero Tracking**: No data collection or analytics of any kind.
+- **No External Dependencies**: Self-contained with no remote code loading.
 
 ## 🛠️ How It Works
 
@@ -123,14 +127,31 @@ Click any image to view.
 
 > *Note: You can use the space bar to launch the Gallery Image Modal with the first image. ESC will close the current modal.*
 
-## Gallery View
+## Gallery Image View
 <img src="samples/gallery-image.jpg" alt="Screen shot of an image from the gallery" title="The Gallery Image Modal" width="450">
 <img src="samples/gallery-image-zoom.jpg" alt="Screen shot of an image from the gallery with zoom" title="The Gallery Image Modal Zoomed" width="450">
 The selected Gallery image is displayed within the current viewport. Tapping space or clicking `View Full Image` will open the image in a new tab if the image is scaled. In addition, a magnifying area will follow the cursor. This can be disabled in settings.js.<br>
 
-`L/R Arrows and W/D` keys navigate the images from the gallery while in Gallery Image Mode.
+`L/R Arrows and W/D` keys navigate the images while in Gallery Image Mode. When you reach the end of loaded images, Ludovision automatically fetches more images from the user's profile. If no more images are available, navigation loops back to the first image.
 
 `Close` (or ESC) to close the modal
+
+## Enhanced Gallery Features
+
+### Continuous Navigation
+When browsing through a gallery with arrow keys, Ludovision automatically loads more images when you reach the end of the currently loaded set. If no more images are available from the user's profile, navigation will loop back to the first image.
+
+### Lazy Loading
+Images are loaded only when they're about to enter your viewport, saving bandwidth and improving performance.
+
+### Image Deduplication
+The gallery automatically filters out duplicate images, ensuring you don't see the same content multiple times.
+
+### Improved Loading Experience
+A subtle loading indicator appears when fetching more images, replacing the full-screen dimming effect for a less intrusive experience.
+
+### Error Handling
+If an error occurs while loading images, you'll see a user-friendly message with the option to retry.
 
 ## 🎯 Future Goals
 

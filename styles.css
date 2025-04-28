@@ -178,20 +178,60 @@ button {
 }
 
 #gallery-modal .grid {
-
     display: grid;
-    grid-auto-rows: auto;
-    grid-template-columns: repeat(auto-fit, minmax(128px, max-content));
-    justify-content: center; /* Center the grid horizontally */
-    gap: 10px; /* Add spacing between grid items */
-    max-width: 80%; /* Restrict the grid to 90% of its container */
-    margin: 0 auto; /* Center the grid in its container */
+    /* Let JS set grid-template-columns and grid-auto-rows dynamically */
+    justify-content: center;
+    gap: 10px;
+    max-width: 80%;
+    margin: 0 auto;
     padding: 10px;
     background-color: rgba(0, 0, 0, 0.8);
     overflow: auto;
-    max-height: 90%;
-
+    max-height: calc(90% - 70px); /* Leave space for controls at the bottom */
 }
+
+.gallery-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    background: rgba(24, 24, 24, 0.98);
+    padding: 18px 0 12px 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.35);
+    z-index: 110;
+}
+
+#gallery-modal.show > .gallery-controls {
+    display: flex;
+}
+
+#gallery-modal .grid {
+    margin-bottom: 70px;
+}
+
+
+#gallery-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 105;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+
 
 #close-gallery-button {
     background-color: #f56565; /* Red */
@@ -210,8 +250,9 @@ button {
 }
 
 #gallery-modal .grid img {
-    width: 128px;
-    height: 128px;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
     overflow: hidden;
     cursor: pointer;

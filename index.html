@@ -44,6 +44,13 @@
 
     <div id="header">
         <h1>Ludovision</h1>
+        <div id="plc-reveal-container">
+            <button id="plc-reveal-btn" class="btn btn-sm btn-secondary" style="margin-left:16px;">Enter PLC</button>
+            <form id="plc-form" style="display:none; margin-left:8px;">
+                <input type="text" id="plc-input" placeholder="Enter PLC (DID)" class="form-control" style="width:180px;">
+                <button type="submit" class="btn btn-sm btn-primary" style="margin-left:4px;">Go</button>
+            </form>
+        </div>
         <div id="settings-container" class="settings-menu">
             <!-- close button-->
             <div class="form-container">
@@ -134,9 +141,23 @@
         <div class="grid">
             <!-- Gallery images will be appended here -->
         </div>
-        <div class="modal-buttons">
+        </div>
+        <div class="gallery-controls modal-buttons" style="align-items: center; gap: 14px;">
             <button id="close-gallery-button">Close</button>
             <button id="gallery-profile-link" class="view-profile-button" href="#" target="_blank">View Profile</button>
+            <button id="copy-plc-btn" class="btn-secondary" style="margin-left:8px;">Copy PLC</button>
+            <label for="gallery-size-slider" style="margin:0 8px 0 24px; font-size:0.95em; color:#ccc;">Image Size</label>
+            <input type="range" id="gallery-size-slider" min="32" max="1024" value="128" step="32" list="gallery-size-ticks" style="width:180px; vertical-align:middle;">
+            <datalist id="gallery-size-ticks">
+                <option value="32">32</option>
+                <option value="64">64</option>
+                <option value="128">128</option>
+                <option value="256">256</option>
+                <option value="384">384</option>
+                <option value="512">512</option>
+                <option value="1024">1024</option>
+            </datalist>
+            <span id="gallery-size-value" style="min-width:32px; display:inline-block; color:#ccc;">128px</span>
         </div>
     </div>
 

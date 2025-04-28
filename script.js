@@ -38,23 +38,74 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalImage = document.getElementById('modal-image');
     const profileLink = document.getElementById('profile-link');
     const galleryProfileLink = document.getElementById('gallery-profile-link');
+    const copyPlcBtn = document.getElementById('copy-plc-btn');
     const viewAllMediaButton = document.getElementById('view-all-media-button');
     const galleryInstructionsModal = document.getElementById('instructions-modal');
     const closeInstructionsButton = document.getElementById('close-instructions-button');
     const galleryContainer = document.querySelector('#gallery-modal .grid');
     const galleryImageModal = document.getElementById('gallery-image-modal');
-    const galleryImages = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
+    const galleryControls = document.querySelector('.gallery-controls');
+    const galleryGrid = document.querySelector('#gallery-modal .grid');
+    const gallerySizeSlider = document.getElementById('gallery-size-slider');
+    const gallerySizeValue = document.getElementById('gallery-size-value');
     const imageSizeSlider = document.getElementById('image-size-slider');
     const imageSizeInput = document.getElementById('image-size-input');
     const magnifierElement = document.getElementById('magnifier');
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const settingsContainer = document.getElementById('settings-container');
     const closeSettingsButton = document.getElementById('close-settings-button');
+    const sortToggle = document.getElementById('sort-toggle');
+    const blurToggle = document.getElementById('blur-toggle');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedValue = document.getElementById('speed-value');
 
     const identifierInput = document.getElementById('bsky-identifier');
     const appPasswordInput = document.getElementById('bsky-app-password');
     const authButton = document.getElementById('auth-button');
     const clearButton = document.getElementById('clear-button');
+
+    // PLC reveal elements
+    const plcRevealBtn = document.getElementById('plc-reveal-btn');
+    const plcForm = document.getElementById('plc-form');
+    const plcInput = document.getElementById('plc-input');
+
+    if (plcRevealBtn && plcForm && plcInput) {
+        plcRevealBtn.addEventListener('click', function() {
+            plcRevealBtn.style.display = 'none';
+            plcForm.style.display = 'inline-flex';
+            plcInput.focus();
+        });
+        plcForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const plcValue = plcInput.value.trim();
+            if (plcValue) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('plc', plcValue);
+                window.location.href = url.toString();
+            }
+        });
+        plcInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                plcForm.style.display = 'none';
+                plcRevealBtn.style.display = 'inline-block';
+            }
+        });
+
+        // Add global keydown for 'G' to reveal PLC entry
+        document.addEventListener('keydown', function(e) {
+            // Only trigger if not focused on input/textarea, and not with modifier keys
+            if (
+                e.key.toLowerCase() === 'g' &&
+                !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey &&
+                document.activeElement &&
+                ['input', 'textarea'].indexOf(document.activeElement.tagName.toLowerCase()) === -1 &&
+                plcRevealBtn.style.display !== 'none'
+            ) {
+                e.preventDefault();
+                plcRevealBtn.click();
+            }
+        });
+    }
 
     // Load stored credentials and tokens if localStorage is enabled
     if (useLocalStorage) {
@@ -152,6 +203,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Close gallery modal
     closeGalleryButton.addEventListener('click', function () {
         galleryModal.style.display = 'none';
+        galleryModal.classList.remove('show');
+        galleryControls.style.display = 'none';
         isGalleryOpen = false;
         if (galleryLoadingAbortController) {
             galleryLoadingAbortController.abort();
@@ -858,6 +911,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (galleryModal.style.display === 'flex') {
                 galleryModal.style.display = 'none';
+                galleryControls.style.display = 'none';
                 isGalleryOpen = false;
                 if (galleryLoadingAbortController) {
                     galleryLoadingAbortController.abort();
@@ -871,11 +925,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Close modals by clicking outside
     window.addEventListener('click', function (event) {
+        // Patch: Prevent gallery modal from closing if click is on the slider or its label/value
+        const isGallerySlider = event.target.closest && (
+            event.target.closest('#gallery-size-slider') ||
+            event.target.closest('#gallery-size-value') ||
+            event.target.closest('label[for="gallery-size-slider"]')
+        );
         if (event.target === modal) {
             modal.style.display = 'none';
         }
-        if (event.target === galleryModal) {
+        if (event.target === galleryModal && !isGallerySlider) {
             galleryModal.style.display = 'none';
+            galleryModal.classList.remove('show');
+            galleryControls.style.display = 'none';
             isGalleryOpen = false;
             if (galleryLoadingAbortController) {
                 galleryLoadingAbortController.abort();
@@ -1011,6 +1073,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function closeGalleryImageModal() {
         galleryImageModal.style.display = 'none';
         galleryModal.style.display = 'flex'; // Show gallery modal again
+        galleryControls.style.display = 'flex';
     }
 
     // Close gallery image modal with click outside
@@ -1074,9 +1137,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-    // Set default for image sizes
+    // Set default for image sizes (on page load)
     imageSizeSlider.value = imageSize;
     imageSizeInput.value = imageSize;
+    
+    // Set values for all other form elements from settings (on page load)
+    sortToggle.checked = newestFirst;
+    blurToggle.checked = blurUnwanted;
+    speedSlider.value = feedDelay;
+    speedValue.textContent = feedDelay;
+    
+    // Set Bluesky credentials in the form (on page load)
+    if (bsky_identifier) {
+        identifierInput.value = bsky_identifier;
+    }
+    if (bsky_appPassword) {
+        appPasswordInput.value = bsky_appPassword;
+    }
+    
+    // Display appropriate button (Auth or Clear) based on token availability (on page load)
+    if (token || (bsky_identifier && bsky_appPassword)) {
+        clearButton.style.display = 'inline-block';
+        authButton.style.display = 'none';
+    } else {
+        clearButton.style.display = 'none';
+        authButton.style.display = 'inline-block';
+    }
 
     // Scale images with slider values
     updateImageSize(imageSize);
@@ -1301,6 +1387,7 @@ document.addEventListener('DOMContentLoaded', function () {
             isGalleryOpen = true;
             fetchGalleryImages(profileUrl);
             galleryModal.style.display = 'flex';
+            galleryControls.style.display = 'flex';
         }
     }
 
@@ -1315,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Start the authentication process
     handleAuthentication();
 
-    const sortToggle = document.getElementById('sort-toggle');
+    // Already declared at the top. Removed duplicate declaration.
     sortToggle.checked = newestFirst;
 
     // Add event listener for the toggle
@@ -1328,8 +1415,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Now we can safely get the elements and add the event listener
-    const speedSlider = document.getElementById('speed-slider');
-    const speedValue = document.getElementById('speed-value');
+    // Already declared at the top. Removed duplicate declaration.
+    // Already declared at the top. Removed duplicate declaration.
     speedSlider.value = speedValue.textContent = feedDelay;
 
     speedSlider.addEventListener('input', function(e) {
@@ -1446,7 +1533,23 @@ document.addEventListener('DOMContentLoaded', function () {
         const isVisible = settingsContainer.style.display === 'flex';
         settingsContainer.style.display = isVisible ? 'none' : 'flex';
         if (!isVisible) {
-            settingsContainer.style.display = 'flex';
+            // Re-populate all modal fields from the current settings
+            imageSizeSlider.value = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
+            imageSizeInput.value = typeof settings.imageSize === 'number' ? settings.imageSize : 128;
+            sortToggle.checked = typeof settings.newestFirst === 'boolean' ? settings.newestFirst : false;
+            blurToggle.checked = typeof settings.blurUnwanted === 'boolean' ? settings.blurUnwanted : true;
+            speedSlider.value = typeof settings.feedDelay === 'number' ? settings.feedDelay : 0;
+            speedValue.textContent = typeof settings.feedDelay === 'number' ? settings.feedDelay : 0;
+            identifierInput.value = typeof settings.bsky_identifier === 'string' ? settings.bsky_identifier : '';
+            appPasswordInput.value = typeof settings.bsky_appPassword === 'string' ? settings.bsky_appPassword : '';
+            // Display appropriate button (Auth or Clear) based on token availability
+            if (token || (settings.bsky_identifier && settings.bsky_appPassword)) {
+                clearButton.style.display = 'inline-block';
+                authButton.style.display = 'none';
+            } else {
+                clearButton.style.display = 'none';
+                authButton.style.display = 'inline-block';
+            }
         }
     });
 
@@ -1454,7 +1557,7 @@ document.addEventListener('DOMContentLoaded', function () {
         settingsContainer.style.display = 'none';
     });
 
-    const blurToggle = document.getElementById('blur-toggle');
+    // Already declared at the top. Removed duplicate declaration.
     blurToggle.checked = blurUnwanted;
 
     blurToggle.addEventListener('change', function(e) {
@@ -1520,12 +1623,83 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize header visibility handling
     handleHeaderVisibility();
 
+    // Gallery image size slider logic
+    if (gallerySizeSlider && gallerySizeValue && galleryGrid) {
+        // Set initial value
+        gallerySizeValue.textContent = gallerySizeSlider.value + 'px';
+        function updateGalleryGridSize(size) {
+            // Set grid-template-columns and rows for perfect squares
+            galleryGrid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${size}px, 1fr))`;
+            galleryGrid.style.gridAutoRows = size + 'px';
+            galleryGrid.style.minWidth = '32px';
+            galleryGrid.style.minHeight = '32px';
+            // Make all images perfect squares and cropped, set min size
+            const imgs = galleryGrid.querySelectorAll('img');
+            imgs.forEach(img => {
+                img.style.width = size + 'px';
+                img.style.height = size + 'px';
+                img.style.minWidth = '32px';
+                img.style.minHeight = '32px';
+                img.style.objectFit = 'cover';
+            });
+        }
+        // Only allow discrete values
+        const allowedSizes = [32, 64, 128, 256, 384, 512, 1024];
+        gallerySizeSlider.addEventListener('input', function() {
+            // Snap to closest allowed value
+            let size = parseInt(gallerySizeSlider.value, 10);
+            let closest = allowedSizes.reduce((prev, curr) => Math.abs(curr - size) < Math.abs(prev - size) ? curr : prev);
+            gallerySizeSlider.value = closest;
+            gallerySizeValue.textContent = closest + 'px';
+            updateGalleryGridSize(closest);
+        });
+        // Set initial size on load (in case images are already present)
+        updateGalleryGridSize(gallerySizeSlider.value);
+        // If images are dynamically added, update their size
+        const observer = new MutationObserver(() => updateGalleryGridSize(gallerySizeSlider.value));
+        observer.observe(galleryGrid, { childList: true, subtree: true });
+    }
+
+    // Copy PLC button logic
+    if (copyPlcBtn) {
+        copyPlcBtn.addEventListener('click', function() {
+            // Try to get PLC from the query string first
+            let plc = null;
+            try {
+                const url = new URL(window.location.href);
+                plc = url.searchParams.get('plc');
+            } catch (e) {}
+            // If not in query string, try to get from galleryProfileLink href (if DID is present)
+            if (!plc && galleryProfileLink && galleryProfileLink.href) {
+                // Try to extract DID from the profile link (e.g., https://bsky.app/profile/did:plc:xxx)
+                const match = galleryProfileLink.href.match(/did:plc:([\w\d]+)/);
+                plc = match ? match[1] : null;
+            }
+            // Remove 'did:plc:' prefix if present
+            if (plc && plc.startsWith('did:plc:')) {
+                plc = plc.substring(8);
+            }
+            if (plc) {
+                navigator.clipboard.writeText(plc).then(function() {
+                    copyPlcBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyPlcBtn.textContent = 'Copy PLC'; }, 1500);
+                }, function() {
+                    copyPlcBtn.textContent = 'Error';
+                    setTimeout(() => { copyPlcBtn.textContent = 'Copy PLC'; }, 1500);
+                });
+            } else {
+                copyPlcBtn.textContent = 'Not Found';
+                setTimeout(() => { copyPlcBtn.textContent = 'Copy PLC'; }, 1500);
+            }
+        });
+    }
+
+
     // Add event listener for the window resize event
     window.addEventListener('resize', handleHeaderVisibility);
 
     // Event listener for the "View Gallery" button
     viewAllMediaButton.addEventListener('click', function () {
-        
         // Hide the image modal
         modal.style.display = 'none';
 
@@ -1537,6 +1711,8 @@ document.addEventListener('DOMContentLoaded', function () {
             isGalleryOpen = true; // Set flag to true BEFORE fetching images
             fetchGalleryImages(profileLink.href); // Fetch images
             galleryModal.style.display = 'flex'; // Show the gallery modal
+            galleryModal.classList.add('show');
+            galleryControls.style.display = 'flex';
         }
     });
 

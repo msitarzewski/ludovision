@@ -725,13 +725,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Track if we found any images in this batch
                     let imagesFoundInBatch = 0;
                     
-                    // Create a set to track image URLs we've already added
+                    // Create a set to track media URLs we've already added
                     const existingImageUrls = new Set();
-                    
-                    // First, collect all existing image URLs to avoid duplicates
+
+                    // First, collect all existing media URLs to avoid duplicates
                     if (cursor) {
+                        // Collect existing images
                         galleryContainer.querySelectorAll('img').forEach(img => {
                             const src = img.getAttribute('data-src') || img.src;
+                            if (src && !src.includes('data:image/svg+xml')) {
+                                existingImageUrls.add(src);
+                            }
+                        });
+                        // Collect existing videos
+                        galleryContainer.querySelectorAll('video').forEach(video => {
+                            const src = video.getAttribute('data-src') || video.src;
                             if (src && !src.includes('data:image/svg+xml')) {
                                 existingImageUrls.add(src);
                             }
@@ -740,6 +748,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Append images and videos
                     data.feed.forEach(item => {
+                        // Debug: Log embed types to understand what we're receiving
+                        if (item.post.embed && item.post.embed.$type) {
+                            console.log('Gallery embed type:', item.post.embed.$type);
+                        }
+
                         // Process image embeds
                         if (item.post.embed && item.post.embed.images) {
                             item.post.embed.images.forEach(image => {
@@ -796,9 +809,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             });
                         }
 
-                        // Process video embeds
-                        if (item.post.embed && item.post.embed.$type === 'app.bsky.embed.video') {
+                        // Process video embeds (handle both record and view types)
+                        if (showVideos && item.post.embed && (item.post.embed.$type === 'app.bsky.embed.video' || item.post.embed.$type === 'app.bsky.embed.video#view')) {
                             const videoEmbed = item.post.embed;
+                            console.log('Found video embed:', videoEmbed);
 
                             // Construct video URL from playlist field (this comes from the View response)
                             const videoUrl = videoEmbed.playlist || '';
@@ -884,10 +898,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.cursor && isGalleryOpen) {
                         if (imagesFoundInBatch > 0) {
                             // Create a sentinel observer to detect when user scrolls near bottom
-                            // We'll use the last image as our sentinel instead of adding a new element
-                            const lastImage = galleryContainer.querySelector('img:last-of-type');
-                            
-                            if (lastImage) {
+                            // We'll use the last media element (image or video) as our sentinel
+                            const allMedia = galleryContainer.querySelectorAll('img, video');
+                            const lastMedia = allMedia[allMedia.length - 1];
+
+                            if (lastMedia) {
                                 // First, disconnect any existing sentinel observers to prevent multiple triggers
                                 galleryObservers = galleryObservers.filter(observer => {
                                     if (observer._isSentinelObserver) {
@@ -928,9 +943,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 
                                 // Mark this as a sentinel observer for easy filtering later
                                 sentinelObserver._isSentinelObserver = true;
-                                
-                                // Observe the last image
-                                sentinelObserver.observe(lastImage);
+
+                                // Observe the last media element
+                                sentinelObserver.observe(lastMedia);
                                 galleryObservers.push(sentinelObserver);
                             }
                         } else {
@@ -945,10 +960,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             }, 300);
                         }
                     } else if (imagesFoundInBatch === 0 && !data.cursor && cursor) {
-                        // We've reached the end and found no images in this batch
-                        // Create a "no more images" indicator that doesn't break the grid
+                        // We've reached the end and found no media in this batch
+                        // Create a "no more media" indicator that doesn't break the grid
                         const endMessage = document.createElement('div');
-                        endMessage.textContent = 'No more images';
+                        endMessage.textContent = 'No more media';
                         endMessage.style.position = 'fixed';
                         endMessage.style.bottom = '10px';
                         endMessage.style.left = '50%';
@@ -1044,8 +1059,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         errorMessage.style.margin = '20px auto';
                         errorMessage.style.maxWidth = '80%';
                         
-                        // If this is the first load and there are no images yet, center the error
-                        if (!cursor && galleryContainer.querySelectorAll('img').length === 0) {
+                        // If this is the first load and there is no media yet, center the error
+                        if (!cursor && galleryContainer.querySelectorAll('img, video').length === 0) {
                             errorMessage.style.position = 'absolute';
                             errorMessage.style.top = '50%';
                             errorMessage.style.left = '50%';
@@ -1345,10 +1360,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     viewAllMediaButton.click(); // Simulate click to open gallery
                 }
             } else {
-                // Launch the gallery-image-viewer if the gallery is open
-                const selectedImage = galleryContainer.querySelector('img');
-                if (selectedImage) {
-                    selectedImage.click(); // Simulate click to open image viewer
+                // Launch the gallery viewer if the gallery is open
+                const selectedMedia = galleryContainer.querySelector('img, video');
+                if (selectedMedia) {
+                    selectedMedia.click(); // Simulate click to open media viewer
                 }
             }
         }

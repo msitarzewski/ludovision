@@ -745,22 +745,22 @@ input[type="text"].form-control, input[type="password"].form-control {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 64px;
-    height: 64px;
+    width: 32px;
+    height: 32px;
     background: rgba(0, 0, 0, 0.7);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 8px;
     pointer-events: none;
     z-index: 10;
 }
 
 .play-overlay svg {
-    width: 32px;
-    height: 32px;
-    margin-left: 2px; /* Optical centering for play triangle */
+    width: 16px;
+    height: 16px;
+    margin-left: 1px; /* Optical centering for play triangle */
 }
 
 .video-container:hover .play-overlay {
@@ -784,22 +784,22 @@ input[type="text"].form-control, input[type="password"].form-control {
 
 .gallery-play-icon {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    width: 32px;
-    height: 32px;
+    bottom: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
     background: rgba(0, 0, 0, 0.7);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px;
+    padding: 5px;
     pointer-events: none;
 }
 
 .gallery-play-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 14px;
+    height: 14px;
     margin-left: 1px; /* Optical centering for play triangle */
 }
 

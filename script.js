@@ -570,19 +570,21 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mediaType === 'video') {
             // Show video, hide image
             modalVideo.src = mediaUrl;
+            modalVideo.muted = true; // Start muted
             modalVideo.style.display = 'block';
             modalImage.style.display = 'none';
-            // Auto-play video when modal opens
+            // Auto-play video when modal opens (muted)
             modalVideo.play();
         } else {
             // Show image, hide video
             modalImage.src = mediaUrl;
             modalImage.style.display = 'block';
             modalVideo.style.display = 'none';
-            // Pause video if it was playing
+            // Stop and unload video if it was playing
             if (!modalVideo.paused) {
                 modalVideo.pause();
             }
+            modalVideo.src = ''; // Unload video
         }
 
         profileLink.href = profileLinkUrl;
@@ -1119,6 +1121,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (event.key === 'Escape') {
             if (modal.style.display === 'flex') {
                 modal.style.display = 'none';
+                // Stop and unload feed modal video
+                if (!modalVideo.paused) {
+                    modalVideo.pause();
+                }
+                modalVideo.src = '';
             }
             if (galleryModal.style.display === 'flex') {
                 galleryModal.style.display = 'none';
@@ -1144,6 +1151,11 @@ document.addEventListener('DOMContentLoaded', function () {
         );
         if (event.target === modal) {
             modal.style.display = 'none';
+            // Stop and unload feed modal video
+            if (!modalVideo.paused) {
+                modalVideo.pause();
+            }
+            modalVideo.src = '';
         }
         if (event.target === galleryModal && !isGallerySlider) {
             galleryModal.style.display = 'none';
@@ -1172,10 +1184,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mediaType === 'video') {
             // Show video, hide image
             galleryModalVideo.src = mediaUrl;
+            galleryModalVideo.muted = true; // Start muted
             galleryModalVideo.style.display = 'block';
             galleryModalImage.style.display = 'none';
 
-            // Auto-play video when modal opens
+            // Auto-play video when modal opens (muted)
             galleryModalVideo.play();
         } else {
             // Show image, hide video
@@ -1183,10 +1196,11 @@ document.addEventListener('DOMContentLoaded', function () {
             galleryModalImage.style.display = 'block';
             galleryModalVideo.style.display = 'none';
 
-            // Pause video if it was playing
+            // Stop and unload video if it was playing
             if (!galleryModalVideo.paused) {
                 galleryModalVideo.pause();
             }
+            galleryModalVideo.src = ''; // Unload video
 
             // Wait for the image to load to access its natural dimensions
             galleryModalImage.onload = () => {
@@ -1307,6 +1321,12 @@ document.addEventListener('DOMContentLoaded', function () {
         galleryImageModal.style.display = 'none';
         galleryModal.style.display = 'flex'; // Show gallery modal again
         galleryControls.style.display = 'flex';
+
+        // Stop and unload gallery modal video
+        if (!galleryModalVideo.paused) {
+            galleryModalVideo.pause();
+        }
+        galleryModalVideo.src = '';
     }
 
     // Close gallery image modal with click outside
@@ -1697,6 +1717,17 @@ document.addEventListener('DOMContentLoaded', function () {
         static closeAll() {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => modal.style.display = 'none');
+
+            // Stop and unload all modal videos
+            if (!modalVideo.paused) {
+                modalVideo.pause();
+            }
+            modalVideo.src = '';
+
+            if (!galleryModalVideo.paused) {
+                galleryModalVideo.pause();
+            }
+            galleryModalVideo.src = '';
         }
 
         static show(modalId) {
@@ -1946,6 +1977,12 @@ document.addEventListener('DOMContentLoaded', function () {
     viewAllMediaButton.addEventListener('click', function () {
         // Hide the image modal
         modal.style.display = 'none';
+
+        // Stop and unload feed modal video
+        if (!modalVideo.paused) {
+            modalVideo.pause();
+        }
+        modalVideo.src = '';
 
         if (token === null) {
             // Show the instructions modal

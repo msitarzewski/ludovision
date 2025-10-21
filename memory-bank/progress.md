@@ -3,26 +3,30 @@
 ## What Works
 
 ### Core Functionality
-- ✅ Real-time streaming of images from Bluesky firehose
-- ✅ Infinite scroll interface for browsing images
-- ✅ Modal view for enlarged images
+- ✅ Real-time streaming of images and videos from Bluesky firehose
+- ✅ Video detection and processing from `app.bsky.embed.video` embeds
+- ✅ Infinite scroll interface for browsing mixed media content
+- ✅ Modal view for enlarged images and video playback
+- ✅ HTML5 video player with native controls
 - ✅ Profile links to Bluesky user accounts
-- ✅ Gallery view for authenticated users
+- ✅ Gallery view for authenticated users (supports images and videos)
 - ✅ Content warning system with opt-out option
+- ✅ Media type filtering (independent image/video toggles)
 - ✅ Image size adjustment (32px to 512px)
-- ✅ Lazy loading of images for performance optimization
-- ✅ Efficient pagination for gallery images
-- ✅ Image deduplication in gallery view
+- ✅ Lazy loading of media for performance optimization
+- ✅ Efficient pagination for gallery media
+- ✅ Media deduplication in gallery view
 - ✅ URL parameter support for direct gallery access
 
 ### User Interface
 - ✅ Clean, minimal design focused on content
 - ✅ Responsive layout that works across devices
-- ✅ Modal system for detailed views
-- ✅ Settings panel for customization
+- ✅ Modal system for detailed views (images and videos)
+- ✅ Settings panel for customization with media type filters
 - ✅ Image magnifier for detailed viewing
+- ✅ Video play button overlays in feed and gallery
 - ✅ Keyboard navigation support
-- ✅ Continuous gallery navigation with auto-loading
+- ✅ Continuous gallery navigation with auto-loading (mixed media)
 - ✅ Subtle loading indicators
 
 ### Authentication
@@ -39,11 +43,14 @@
 - ✅ Client-side only implementation
 
 ### Performance Optimizations
-- ✅ Lazy loading of images only when in viewport
+- ✅ Lazy loading of media only when in viewport
+- ✅ Video elements use `preload="none"` for bandwidth conservation
+- ✅ Auto-pause videos when leaving viewport
 - ✅ Scroll-based pagination that only loads when needed
 - ✅ Proper cleanup of resources when gallery is closed
 - ✅ Prevention of redundant API calls
-- ✅ Efficient observer management
+- ✅ Efficient observer management for mixed media
+- ✅ Video thumbnail posters for instant visual feedback
 
 ## What's Left to Build
 
@@ -76,21 +83,26 @@
 Ludovision is currently in a functional proof-of-concept state. The core features are implemented and working, providing a complete experience for viewing the Bluesky image firehose and exploring user galleries.
 
 ### Recent Milestones
+- **Implemented comprehensive video support across the platform**
+  - Video detection from Bluesky firehose
+  - Video playback in feed and gallery views
+  - Media type filtering controls
+  - Performance optimizations for video handling
 - Implemented the Memory Bank documentation system
-- Established core functionality for image streaming
+- Established core functionality for media streaming
 - Created gallery view with authentication
 - Added user customization options
 - Enhanced gallery with efficient lazy loading and pagination
-- Implemented image deduplication to prevent duplicate content
+- Implemented media deduplication to prevent duplicate content
 - Added URL parameter support for direct gallery access
 - Improved error handling with user-friendly messages and retry options
 - Implemented continuous gallery navigation with auto-loading
 
 ### Current Focus
-- Optimizing gallery performance and user experience
-- Enhancing error handling and recovery mechanisms
-- Improving resource management for better efficiency
-- Adding convenience features for gallery navigation
+- Testing and refining video support implementation
+- Optimizing gallery performance with mixed media content
+- Monitoring video playback performance and resource usage
+- Gathering user feedback on video integration
 
 ## Known Issues
 

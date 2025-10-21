@@ -1,17 +1,28 @@
 # Active Context: Ludovision
 
 ## Current Work Focus
-The current focus is on enhancing the gallery functionality with improved navigation, loading, and error handling. Recent work has implemented seamless image navigation that loads additional images when reaching the end of the current set and loops back to the first image when no more images are available.
+The current focus is on implementing comprehensive video support throughout the platform, including feed display, modal playback, and gallery integration. This expands Ludovision's capabilities to demonstrate privacy implications across multiple media types in the Bluesky firehose.
 
 ## Recent Changes
-1. **Gallery Navigation Improvements**:
-   - Implemented continuous gallery navigation with auto-loading of additional images
-   - Added image deduplication to prevent duplicate content in galleries
+1. **Video Support Implementation** (Latest):
+   - Added detection and processing of `app.bsky.embed.video` from Bluesky firehose
+   - Implemented video playback in feed grid with play button overlays
+   - Added HTML5 video player to feed modal with native controls
+   - Integrated video support into gallery view with thumbnail display
+   - Implemented video playback in gallery image modal
+   - Updated navigation to seamlessly handle mixed image/video content
+   - Added settings UI for independent image/video filtering
+   - Implemented lazy loading for video elements with performance optimizations
+   - Auto-pause videos when leaving viewport to conserve resources
+
+2. **Gallery Navigation Improvements**:
+   - Implemented continuous gallery navigation with auto-loading of additional media
+   - Added media deduplication to prevent duplicate content in galleries
    - Enhanced error handling with user-friendly messages and retry options
    - Replaced full-screen dimming with subtle loading indicators
-   - Converted image loading to Promise-based for better control flow
+   - Converted media loading to Promise-based for better control flow
 
-2. **Memory Bank Documentation**:
+3. **Memory Bank Documentation**:
    - Created the Memory Bank structure with core documentation files
    - Added task documentation for completed features
    - Updated progress tracking to reflect recent improvements

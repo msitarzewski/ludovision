@@ -37,6 +37,9 @@ const useLocalStorage = false;
 const showImages = true;
 const showVideos = true;
 
+// Video settings
+const muteVideosByDefault = true;
+
 // Settings object
 const settings = {
     imageSize: imageSize,
@@ -52,7 +55,8 @@ const settings = {
     useLocalStorage: useLocalStorage,
     inactivityTimeout: inactivityTimeout,
     showImages: showImages,
-    showVideos: showVideos
+    showVideos: showVideos,
+    muteVideosByDefault: muteVideosByDefault
 }
 
 window.settings = settings;

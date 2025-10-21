@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let inactivityTimeout = typeof settings.inactivityTimeout === 'number' ? settings.inactivityTimeout : null;
     let showImages = typeof settings.showImages === 'boolean' ? settings.showImages : true;
     let showVideos = typeof settings.showVideos === 'boolean' ? settings.showVideos : true;
+    let muteVideosByDefault = typeof settings.muteVideosByDefault === 'boolean' ? settings.muteVideosByDefault : true;
     let pendingImages = [];
     let totalImages = 0;
     let currentGalleryImageIndex = 0;
@@ -65,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const speedValue = document.getElementById('speed-value');
     const showImagesCheckbox = document.getElementById('show-images');
     const showVideosCheckbox = document.getElementById('show-videos');
+    const muteVideosByDefaultCheckbox = document.getElementById('mute-videos-by-default');
 
     const identifierInput = document.getElementById('bsky-identifier');
     const appPasswordInput = document.getElementById('bsky-app-password');
@@ -570,10 +572,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mediaType === 'video') {
             // Show video, hide image
             modalVideo.src = mediaUrl;
-            modalVideo.muted = true; // Start muted
+            modalVideo.muted = muteVideosByDefault; // Respect user setting
             modalVideo.style.display = 'block';
             modalImage.style.display = 'none';
-            // Auto-play video when modal opens (muted)
+            // Auto-play video when modal opens
             modalVideo.play();
         } else {
             // Show image, hide video
@@ -1184,11 +1186,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mediaType === 'video') {
             // Show video, hide image
             galleryModalVideo.src = mediaUrl;
-            galleryModalVideo.muted = true; // Start muted
+            galleryModalVideo.muted = muteVideosByDefault; // Respect user setting
             galleryModalVideo.style.display = 'block';
             galleryModalImage.style.display = 'none';
 
-            // Auto-play video when modal opens (muted)
+            // Auto-play video when modal opens
             galleryModalVideo.play();
         } else {
             // Show image, hide video
@@ -1401,6 +1403,7 @@ document.addEventListener('DOMContentLoaded', function () {
     speedValue.textContent = feedDelay;
     showImagesCheckbox.checked = showImages;
     showVideosCheckbox.checked = showVideos;
+    muteVideosByDefaultCheckbox.checked = muteVideosByDefault;
 
     // Set Bluesky credentials in the form (on page load)
     if (bsky_identifier) {
@@ -1837,6 +1840,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     showVideosCheckbox.addEventListener('change', function(e) {
         showVideos = e.target.checked;
+    });
+
+    muteVideosByDefaultCheckbox.addEventListener('change', function(e) {
+        muteVideosByDefault = e.target.checked;
     });
 
     // Add touch event listener for images

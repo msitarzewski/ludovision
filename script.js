@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const closeInstructionsButton = document.getElementById('close-instructions-button');
     const galleryContainer = document.querySelector('#gallery-modal .grid');
     const galleryImageModal = document.getElementById('gallery-image-modal');
+    const galleryModalImage = document.getElementById('gallery-modal-image');
+    const galleryModalVideo = document.getElementById('gallery-modal-video');
     const galleryControls = document.querySelector('.gallery-controls');
     const galleryGrid = document.querySelector('#gallery-modal .grid');
     const gallerySizeSlider = document.getElementById('gallery-size-slider');
@@ -736,8 +738,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         });
                     }
 
-                    // Append images
+                    // Append images and videos
                     data.feed.forEach(item => {
+                        // Process image embeds
                         if (item.post.embed && item.post.embed.images) {
                             item.post.embed.images.forEach(image => {
                                 // Skip if we already have this image
@@ -745,15 +748,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                     console.log('Skipping duplicate image:', image.fullsize);
                                     return;
                                 }
-                                
+
                                 // Add to our tracking set
                                 if (!image.fullsize) {
                                     console.warn('Image missing fullsize URL:', image);
                                     return;
                                 }
-                                
+
                                 existingImageUrls.add(image.fullsize);
-                                
+
                                 imagesFoundInBatch++;
                                 const imgElement = document.createElement('img');
                                 // Use a placeholder initially
@@ -762,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 imgElement.setAttribute('data-src', image.fullsize);
                                 imgElement.alt = image.alt || 'User media';
                                 imgElement.style.minHeight = '128px'; // Ensure placeholder takes space
-                                
+
                                 // Preprocess gallery labels and check for unwanted labels
                                 const processedLabels = preprocessGalleryLabels(item.post.labels);
                                 const blurred = hasUnwantedLabel(processedLabels, unwantedLabels);
@@ -775,22 +778,99 @@ document.addEventListener('DOMContentLoaded', function () {
                                         imgElement.classList.remove('blurred');
                                     });
                                 }
-                                
+
                                 imgElement.addEventListener('click', function () {
                                     // Ensure image is loaded before showing in modal
                                     if (imgElement.getAttribute('data-src')) {
                                         imgElement.src = imgElement.getAttribute('data-src');
                                         imgElement.removeAttribute('data-src');
                                     }
-                                    currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img')).indexOf(imgElement);
-                                    showGalleryImageInModal(imgElement.src);
+                                    currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img, video')).indexOf(imgElement);
+                                    showGalleryImageInModal(imgElement.src, 'image');
                                 });
-                                
+
                                 galleryContainer.appendChild(imgElement);
-                                
+
                                 // Observe the image for lazy loading
                                 galleryObserver.observe(imgElement);
                             });
+                        }
+
+                        // Process video embeds
+                        if (item.post.embed && item.post.embed.$type === 'app.bsky.embed.video') {
+                            const videoEmbed = item.post.embed;
+
+                            // Construct video URL from playlist field (this comes from the View response)
+                            const videoUrl = videoEmbed.playlist || '';
+                            const thumbnailUrl = videoEmbed.thumbnail || '';
+
+                            if (!videoUrl) {
+                                console.warn('Video missing playlist URL:', videoEmbed);
+                                return;
+                            }
+
+                            // Skip duplicates
+                            if (existingImageUrls.has(videoUrl)) {
+                                console.log('Skipping duplicate video:', videoUrl);
+                                return;
+                            }
+
+                            existingImageUrls.add(videoUrl);
+                            imagesFoundInBatch++;
+
+                            // Create container for video with play icon
+                            const videoContainer = document.createElement('div');
+                            videoContainer.className = 'gallery-video-container';
+                            videoContainer.style.position = 'relative';
+                            videoContainer.style.width = '100%';
+                            videoContainer.style.height = '100%';
+
+                            // Create video element
+                            const videoElement = document.createElement('video');
+                            videoElement.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E';
+                            videoElement.setAttribute('data-src', videoUrl);
+                            videoElement.poster = thumbnailUrl;
+                            videoElement.preload = 'none';
+                            videoElement.muted = true;
+                            videoElement.playsInline = true;
+                            videoElement.alt = 'User video';
+                            videoElement.style.width = '100%';
+                            videoElement.style.height = '100%';
+                            videoElement.style.objectFit = 'cover';
+                            videoElement.style.minHeight = '128px';
+
+                            // Add play icon overlay
+                            const playIcon = document.createElement('div');
+                            playIcon.className = 'gallery-play-icon';
+                            playIcon.innerHTML = '▶';
+
+                            // Preprocess gallery labels and check for unwanted labels
+                            const processedLabels = preprocessGalleryLabels(item.post.labels);
+                            const blurred = hasUnwantedLabel(processedLabels, unwantedLabels);
+                            if(blurred) {
+                                videoElement.classList.add('blurred');
+                                videoElement.addEventListener('mouseout', function () {
+                                    videoElement.classList.add('blurred');
+                                });
+                                videoElement.addEventListener('mouseover', function () {
+                                    videoElement.classList.remove('blurred');
+                                });
+                            }
+
+                            // Click handler to open video in modal
+                            videoContainer.addEventListener('click', function () {
+                                // Ensure video URL is set
+                                const videoSrc = videoElement.getAttribute('data-src') || videoElement.src;
+                                currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img, video')).indexOf(videoElement);
+                                showGalleryImageInModal(videoSrc, 'video');
+                            });
+
+                            videoContainer.appendChild(videoElement);
+                            videoContainer.appendChild(playIcon);
+                            galleryContainer.appendChild(videoContainer);
+
+                            // Observe the video for lazy loading
+                            galleryObserver.observe(videoElement);
                         }
                     });
 
@@ -1064,10 +1144,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Show gallery image in modal
-    function showGalleryImageInModal(imageUrl) {
-        const galleryModalImage = document.getElementById('gallery-modal-image');
-        const galleryImageModal = document.getElementById('gallery-image-modal');
+    // Show gallery image/video in modal
+    function showGalleryImageInModal(mediaUrl, mediaType = 'image') {
         const galleryModal = document.getElementById('gallery-modal');
 
         // Remove any existing "View Full Size" button to prevent duplicates
@@ -1076,37 +1154,54 @@ document.addEventListener('DOMContentLoaded', function () {
             existingButton.remove();
         }
 
-        // Set the image source
-        galleryModalImage.src = imageUrl;
+        if (mediaType === 'video') {
+            // Show video, hide image
+            galleryModalVideo.src = mediaUrl;
+            galleryModalVideo.style.display = 'block';
+            galleryModalImage.style.display = 'none';
 
-        // Wait for the image to load to access its natural dimensions
-        galleryModalImage.onload = () => {
-            const nativeWidth = galleryModalImage.naturalWidth;
-            const nativeHeight = galleryModalImage.naturalHeight;
-            const displayedWidth = galleryModalImage.clientWidth;
-            const displayedHeight = galleryModalImage.clientHeight;
+            // Auto-play video when modal opens
+            galleryModalVideo.play();
+        } else {
+            // Show image, hide video
+            galleryModalImage.src = mediaUrl;
+            galleryModalImage.style.display = 'block';
+            galleryModalVideo.style.display = 'none';
 
-            // Check if the displayed size is smaller than the natural size
-            if (displayedWidth < nativeWidth || displayedHeight < nativeHeight) {
-                
-                // Create and display the "View Full Size" button
-                const fullSizeButton = document.createElement('button');
-                fullSizeButton.textContent = 'View Full Size';
-                fullSizeButton.className = 'view-gallery-full-size-button';
-
-                fullSizeButton.addEventListener('click', () => {
-                    window.open(imageUrl, '_blank'); // Open full-size image in a new tab
-                });
-
-                // Append the button to the modal
-                galleryImageModal.appendChild(fullSizeButton);
-
-                // Dynamically enable the magnifier since the button is now present
-                enableMagnifier(galleryModalImage);
-            } else {
-                //console.log('Image is displayed at full size');
+            // Pause video if it was playing
+            if (!galleryModalVideo.paused) {
+                galleryModalVideo.pause();
             }
-        };
+
+            // Wait for the image to load to access its natural dimensions
+            galleryModalImage.onload = () => {
+                const nativeWidth = galleryModalImage.naturalWidth;
+                const nativeHeight = galleryModalImage.naturalHeight;
+                const displayedWidth = galleryModalImage.clientWidth;
+                const displayedHeight = galleryModalImage.clientHeight;
+
+                // Check if the displayed size is smaller than the natural size
+                if (displayedWidth < nativeWidth || displayedHeight < nativeHeight) {
+
+                    // Create and display the "View Full Size" button
+                    const fullSizeButton = document.createElement('button');
+                    fullSizeButton.textContent = 'View Full Size';
+                    fullSizeButton.className = 'view-gallery-full-size-button';
+
+                    fullSizeButton.addEventListener('click', () => {
+                        window.open(mediaUrl, '_blank'); // Open full-size image in a new tab
+                    });
+
+                    // Append the button to the modal
+                    galleryImageModal.appendChild(fullSizeButton);
+
+                    // Dynamically enable the magnifier since the button is now present
+                    enableMagnifier(galleryModalImage);
+                } else {
+                    //console.log('Image is displayed at full size');
+                }
+            };
+        }
 
         // Show the modal
         galleryImageModal.style.display = 'flex';
@@ -1115,29 +1210,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function navigateGalleryImage(direction) {
 
-        // Dynamically select all gallery images
-        const galleryImagesArray = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
-        
-        if (galleryImagesArray.length === 0) {
-            console.error('No gallery images available.');
+        // Dynamically select all gallery media (images and videos)
+        const galleryMediaArray = Array.from(document.querySelectorAll('#gallery-modal .grid img, #gallery-modal .grid video'));
+
+        if (galleryMediaArray.length === 0) {
+            console.error('No gallery media available.');
             return;
         }
 
         // Calculate the new index
         const newIndex = currentGalleryImageIndex + direction;
-        
-        // Check if we're at the end and need to load more images
-        if (direction > 0 && newIndex >= galleryImagesArray.length && lastGalleryCursor && isGalleryOpen && !isLoadingMoreGalleryImages) {
-            // We're at the end and there are more images to load
-            console.log('Reached end of loaded images, loading more...');
-            
+
+        // Check if we're at the end and need to load more media
+        if (direction > 0 && newIndex >= galleryMediaArray.length && lastGalleryCursor && isGalleryOpen && !isLoadingMoreGalleryImages) {
+            // We're at the end and there are more items to load
+            console.log('Reached end of loaded media, loading more...');
+
             // Show loading indicator
             showGalleryLoadingOverlay();
-            
+
             // Set a flag to remember we need to navigate forward after loading
             const pendingNavigationDirection = direction;
-            
-            // Load more images
+
+            // Load more items
             isLoadingMoreGalleryImages = true;
             fetchGalleryImages(currentGalleryProfileUrl, lastGalleryCursor, 0)
                 .then(() => {
@@ -1145,44 +1240,51 @@ document.addEventListener('DOMContentLoaded', function () {
                     setTimeout(() => {
                         // Hide loading indicator
                         hideGalleryLoadingOverlay();
-                        
-                        // Get the updated array of images
-                        const updatedImagesArray = Array.from(document.querySelectorAll('#gallery-modal .grid img'));
-                        
-                        // If we have new images, show the next one
-                        if (updatedImagesArray.length > galleryImagesArray.length) {
-                            currentGalleryImageIndex = galleryImagesArray.length;
-                            const nextImage = updatedImagesArray[currentGalleryImageIndex];
-                            if (nextImage) {
-                                showGalleryImageInModal(nextImage.src);
+
+                        // Get the updated array of media
+                        const updatedMediaArray = Array.from(document.querySelectorAll('#gallery-modal .grid img, #gallery-modal .grid video'));
+
+                        // If we have new media, show the next one
+                        if (updatedMediaArray.length > galleryMediaArray.length) {
+                            currentGalleryImageIndex = galleryMediaArray.length;
+                            const nextMedia = updatedMediaArray[currentGalleryImageIndex];
+                            if (nextMedia) {
+                                const mediaType = nextMedia.tagName === 'VIDEO' ? 'video' : 'image';
+                                const mediaSrc = nextMedia.getAttribute('data-src') || nextMedia.src;
+                                showGalleryImageInModal(mediaSrc, mediaType);
                             }
                         } else {
-                            // No new images were loaded, wrap around to the beginning
+                            // No new media loaded, wrap around to the beginning
                             currentGalleryImageIndex = 0;
-                            const firstImage = updatedImagesArray[0];
-                            if (firstImage) {
-                                showGalleryImageInModal(firstImage.src);
+                            const firstMedia = updatedMediaArray[0];
+                            if (firstMedia) {
+                                const mediaType = firstMedia.tagName === 'VIDEO' ? 'video' : 'image';
+                                const mediaSrc = firstMedia.getAttribute('data-src') || firstMedia.src;
+                                showGalleryImageInModal(mediaSrc, mediaType);
                             }
                         }
                     }, 300);
                 });
             return;
         }
-        
-        // Normal navigation with wrapping
-        currentGalleryImageIndex = (newIndex + galleryImagesArray.length) % galleryImagesArray.length;
 
-        // Show the selected image in the gallery modal
-        const selectedImage = galleryImagesArray[currentGalleryImageIndex];
-        if (selectedImage) {
-            // Ensure image is loaded before showing in modal
-            if (selectedImage.getAttribute('data-src')) {
-                selectedImage.src = selectedImage.getAttribute('data-src');
-                selectedImage.removeAttribute('data-src');
+        // Normal navigation with wrapping
+        currentGalleryImageIndex = (newIndex + galleryMediaArray.length) % galleryMediaArray.length;
+
+        // Show the selected media in the gallery modal
+        const selectedMedia = galleryMediaArray[currentGalleryImageIndex];
+        if (selectedMedia) {
+            // Ensure media is loaded before showing in modal
+            if (selectedMedia.getAttribute('data-src')) {
+                selectedMedia.src = selectedMedia.getAttribute('data-src');
+                selectedMedia.removeAttribute('data-src');
             }
-            showGalleryImageInModal(selectedImage.src);
+
+            // Determine media type
+            const mediaType = selectedMedia.tagName === 'VIDEO' ? 'video' : 'image';
+            showGalleryImageInModal(selectedMedia.src, mediaType);
         } else {
-            console.error('Selected image not found.');
+            console.error('Selected media not found.');
         }
     }
 

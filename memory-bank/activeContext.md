@@ -1,19 +1,25 @@
 # Active Context: Ludovision
 
 ## Current Work Focus
-The current focus is on implementing comprehensive video support throughout the platform, including feed display, modal playback, and gallery integration. This expands Ludovision's capabilities to demonstrate privacy implications across multiple media types in the Bluesky firehose.
+Video support has been successfully implemented and is now complete. The platform now fully supports both images and videos from the Bluesky firehose, with comprehensive playback, filtering, and resource management capabilities. Focus is shifting to testing, refinement, and future enhancements.
 
 ## Recent Changes
-1. **Video Support Implementation** (Latest):
-   - Added detection and processing of `app.bsky.embed.video` from Bluesky firehose
-   - Implemented video playback in feed grid with play button overlays
+1. **Video Support Implementation** (Completed):
+   - Added detection and processing of `app.bsky.embed.video` embeds from Bluesky firehose
+   - Implemented video playback in feed grid with SVG play button overlays
    - Added HTML5 video player to feed modal with native controls
-   - Integrated video support into gallery view with thumbnail display
-   - Implemented video playback in gallery image modal
+   - Integrated video support into gallery view with thumbnail display and play icons
+   - Implemented video playback in gallery modal
    - Updated navigation to seamlessly handle mixed image/video content
    - Added settings UI for independent image/video filtering
-   - Implemented lazy loading for video elements with performance optimizations
+   - Implemented lazy loading for video elements with `preload="none"`
    - Auto-pause videos when leaving viewport to conserve resources
+   - Fixed video detection to handle both `app.bsky.embed.video` and `app.bsky.embed.video#view` types
+   - Implemented proper video cleanup (stop and unload) when closing modals or navigating
+   - Added user-controllable "mute videos by default" setting
+   - Replaced Unicode play button with SVG for cross-browser consistency
+   - Optimized play button sizes based on user feedback (reduced to 50% of original)
+   - Updated all code to use mixed media selectors (`img, video`) throughout
 
 2. **Gallery Navigation Improvements**:
    - Implemented continuous gallery navigation with auto-loading of additional media

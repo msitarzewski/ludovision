@@ -81,6 +81,19 @@
                         <input type="range" id="speed-slider" min="0" max="2000" value="0" step="100" class="form-control-range">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Media Types</label>
+                    <div class="form-inputs" style="flex-direction: row; gap: 15px;">
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="show-images" checked class="form-check-input">
+                            <span>Images</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="show-videos" checked class="form-check-input">
+                            <span>Videos</span>
+                        </label>
+                    </div>
+                </div>
                 <div id="auth-container">
                     <div class="form-group">
                         <label for="bsky-identifier" class="form-label">Bluesky Identifier</label>
@@ -131,6 +144,7 @@
 
     <div id="image-modal" class="modal" style="display: none;">
         <img id="modal-image" alt="Full-size image" style="max-width: 90%; max-height: 90%;">
+        <video id="modal-video" controls style="display: none; max-width: 90%; max-height: 90%; border-radius: 20px;"></video>
         <div class="modal-buttons">
             <button id="profile-link" class="view-profile-button" href="#" target="_blank">View Profile</button>
             <button id="view-all-media-button" class="view-all-media-button" href="#">View Gallery</button>

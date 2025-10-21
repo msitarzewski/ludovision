@@ -33,6 +33,10 @@ const newestFirst = false;
 // Use local storage for settings
 const useLocalStorage = false;
 
+// Media type filters
+const showImages = true;
+const showVideos = true;
+
 // Settings object
 const settings = {
     imageSize: imageSize,
@@ -46,7 +50,9 @@ const settings = {
     feedDelay: feedDelay,
     feedPaused: feedPaused,
     useLocalStorage: useLocalStorage,
-    inactivityTimeout: inactivityTimeout
+    inactivityTimeout: inactivityTimeout,
+    showImages: showImages,
+    showVideos: showVideos
 }
-    
+
 window.settings = settings;

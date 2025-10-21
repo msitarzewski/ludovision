@@ -14,10 +14,12 @@ document.addEventListener('DOMContentLoaded', function () {
     let feedPaused = typeof settings.feedPaused === 'boolean' ? settings.feedPaused : false;
     let useLocalStorage = typeof settings.useLocalStorage === 'boolean' ? settings.useLocalStorage : false;
     let inactivityTimeout = typeof settings.inactivityTimeout === 'number' ? settings.inactivityTimeout : null;
+    let showImages = typeof settings.showImages === 'boolean' ? settings.showImages : true;
+    let showVideos = typeof settings.showVideos === 'boolean' ? settings.showVideos : true;
     let pendingImages = [];
     let totalImages = 0;
     let currentGalleryImageIndex = 0;
-    
+
     // List of unwanted labels
     const unwantedLabels = ["porn", "gore", "nudity", "graphic-media"];
 
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const imagesContainer = document.getElementById('images-container');
     const modal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
+    const modalVideo = document.getElementById('modal-video');
     const profileLink = document.getElementById('profile-link');
     const galleryProfileLink = document.getElementById('gallery-profile-link');
     const copyPlcBtn = document.getElementById('copy-plc-btn');
@@ -58,6 +61,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const blurToggle = document.getElementById('blur-toggle');
     const speedSlider = document.getElementById('speed-slider');
     const speedValue = document.getElementById('speed-value');
+    const showImagesCheckbox = document.getElementById('show-images');
+    const showVideosCheckbox = document.getElementById('show-videos');
 
     const identifierInput = document.getElementById('bsky-identifier');
     const appPasswordInput = document.getElementById('bsky-app-password');
@@ -366,7 +371,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 //     return; // Skip this message
                 // }
     
+                // Handle image embeds
                 if (
+                    showImages &&
                     decodedMessage.commit &&
                     decodedMessage.commit.record &&
                     decodedMessage.commit.record.embed &&
@@ -375,19 +382,60 @@ document.addEventListener('DOMContentLoaded', function () {
                     const images = decodedMessage.commit.record.embed.images;
                     const profileDid = decodedMessage.did;
                     const profileLinkUrl = `https://bsky.app/profile/${decodedMessage.did}`;
-    
+
                     images.forEach(image => {
 
                         const link = image.image.ref['$link'];
                         const tags = image.image.tags;
                         const mimeType = image.image.mimeType.split('/')[1];
                         const imageUrl = `https://cdn.bsky.app/img/feed_thumbnail/plain/${decodedMessage.did}/${link}@${mimeType}`;
-    
+
                         // Example: Blur content (optional)
                         blurred = hasUnwantedLabel(labels, unwantedLabels);
 
                         // console.log('labels', labels, 'blurred', blurred);
-                        imageQueue.add({ imageUrl, profileLinkUrl, profileDid, blurred });
+                        imageQueue.add({
+                            mediaUrl: imageUrl,
+                            mediaType: 'image',
+                            profileLinkUrl,
+                            profileDid,
+                            blurred
+                        });
+                    });
+                }
+
+                // Handle video embeds
+                if (
+                    showVideos &&
+                    decodedMessage.commit &&
+                    decodedMessage.commit.record &&
+                    decodedMessage.commit.record.embed &&
+                    decodedMessage.commit.record.embed.$type === 'app.bsky.embed.video'
+                ) {
+                    const videoEmbed = decodedMessage.commit.record.embed;
+                    const profileDid = decodedMessage.did;
+                    const profileLinkUrl = `https://bsky.app/profile/${decodedMessage.did}`;
+
+                    const link = videoEmbed.video.ref['$link'];
+                    const mimeType = videoEmbed.video.mimeType;
+                    const aspectRatio = videoEmbed.aspectRatio;
+
+                    // Construct video URL - using Bluesky's video CDN
+                    const videoUrl = `https://video.bsky.app/watch/${profileDid}/${link}/playlist.m3u8`;
+                    const thumbnailUrl = `https://video.bsky.app/watch/${profileDid}/${link}/thumbnail.jpg`;
+
+                    blurred = hasUnwantedLabel(labels, unwantedLabels);
+
+                    console.log('Video detected:', { videoUrl, thumbnailUrl, aspectRatio });
+
+                    imageQueue.add({
+                        mediaUrl: videoUrl,
+                        thumbnailUrl: thumbnailUrl,
+                        mediaType: 'video',
+                        aspectRatio: aspectRatio,
+                        profileLinkUrl,
+                        profileDid,
+                        blurred
                     });
                 }
             } catch (error) {
@@ -407,56 +455,99 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Create IntersectionObserver for lazy loading
+    // Create IntersectionObserver for lazy loading (handles both images and videos)
     const observer = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
+            const element = entry.target;
+
             if (entry.isIntersecting) {
-                const img = entry.target;
-                if (img.dataset.src) {
-                    img.src = img.dataset.src; // Set the real image source
-                    img.style.opacity = 1; // Make the image visible
-                    observer.unobserve(img); // Stop observing the image
+                // Load media when entering viewport
+                if (element.dataset.src) {
+                    element.src = element.dataset.src;
+                    element.style.opacity = 1;
+
+                    // For video elements, load but don't auto-play in feed
+                    if (element.tagName === 'VIDEO') {
+                        element.load();
+                    } else {
+                        // For images, stop observing after load
+                        observer.unobserve(element);
+                    }
+                }
+            } else {
+                // Pause videos when leaving viewport (performance optimization)
+                if (element.tagName === 'VIDEO' && !element.paused) {
+                    element.pause();
                 }
             }
         });
     }, {
         root: null, // Default to the viewport
-        rootMargin: "100px", // Load the image when it enters the viewport
-        threshold: 0.05 // Trigger when 5% of the image is visible
+        rootMargin: "100px", // Load media when it enters the viewport
+        threshold: 0.05 // Trigger when 5% is visible
     });
 
-    // Immediate append function (original appendImage logic)
-    function appendImageImmediate({ imageUrl, profileLinkUrl, profileDid, blurred }) {
-        const imageDiv = document.createElement('div');
-        imageDiv.className = 'image-container';
+    // Immediate append function (handles both images and videos)
+    function appendImageImmediate({ mediaUrl, mediaType = 'image', thumbnailUrl, aspectRatio, profileLinkUrl, profileDid, blurred, imageUrl }) {
+        // Backwards compatibility: support old imageUrl parameter
+        if (imageUrl && !mediaUrl) {
+            mediaUrl = imageUrl;
+            mediaType = 'image';
+        }
 
-        const imgElement = document.createElement('img');
-        imgElement.dataset.src = imageUrl;
+        const mediaContainer = document.createElement('div');
+        mediaContainer.className = mediaType === 'video' ? 'video-container' : 'image-container';
+
+        let mediaElement;
+
+        if (mediaType === 'video') {
+            // Create video element with thumbnail
+            mediaElement = document.createElement('video');
+            mediaElement.dataset.src = mediaUrl;
+            mediaElement.poster = thumbnailUrl || '';
+            mediaElement.muted = true;
+            mediaElement.loop = true;
+            mediaElement.playsInline = true;
+            mediaElement.preload = 'none'; // Lazy loading
+            mediaElement.alt = 'Video post';
+
+            // Add play button overlay
+            const playOverlay = document.createElement('div');
+            playOverlay.className = 'play-overlay';
+            playOverlay.innerHTML = '▶';
+            mediaContainer.appendChild(playOverlay);
+        } else {
+            // Create image element (existing logic)
+            mediaElement = document.createElement('img');
+            mediaElement.dataset.src = mediaUrl;
+            mediaElement.alt = 'No description available';
+        }
+
+        // Apply blur effect if needed
         if(blurred) {
-            //console.log('blurred');
-            imgElement.classList.add('blurred');
-            imgElement.addEventListener('mouseout', function () {
-                imgElement.classList.add('blurred');
+            mediaElement.classList.add('blurred');
+            mediaElement.addEventListener('mouseout', function () {
+                mediaElement.classList.add('blurred');
             });
-            imgElement.addEventListener('mouseover', function () {
-                imgElement.classList.remove('blurred');
+            mediaElement.addEventListener('mouseover', function () {
+                mediaElement.classList.remove('blurred');
             });
         }
-        imgElement.alt = 'No description available';
 
-        imgElement.addEventListener('click', () => {
-            openImageModal(imageUrl, profileLinkUrl, profileDid);
+        // Click handler to open modal
+        mediaElement.addEventListener('click', () => {
+            openImageModal(mediaUrl, mediaType, profileLinkUrl, profileDid);
         });
 
-        imageDiv.appendChild(imgElement);
-        
+        mediaContainer.appendChild(mediaElement);
+
         if (newestFirst) {
-            imagesContainer.insertBefore(imageDiv, imagesContainer.firstChild);
+            imagesContainer.insertBefore(mediaContainer, imagesContainer.firstChild);
         } else {
-            imagesContainer.appendChild(imageDiv);
+            imagesContainer.appendChild(mediaContainer);
         }
 
-        observer.observe(imgElement);
+        observer.observe(mediaElement);
         totalImages++;
         updateDebugInfo();
     }
@@ -464,9 +555,34 @@ document.addEventListener('DOMContentLoaded', function () {
     // Observe all images for lazy loading
     document.querySelectorAll('.image-container img').forEach(img => observer.observe(img));
 
-    // Open image modal
-    function openImageModal(imageUrl, profileLinkUrl, profileDid) {
-        modalImage.src = imageUrl;
+    // Open image/video modal
+    function openImageModal(mediaUrl, mediaType = 'image', profileLinkUrl, profileDid) {
+        // Handle backwards compatibility (old 3-param calls)
+        if (!profileDid && !mediaType) {
+            // Old signature: openImageModal(imageUrl, profileLinkUrl, profileDid)
+            profileDid = profileLinkUrl;
+            profileLinkUrl = mediaType;
+            mediaType = 'image';
+        }
+
+        if (mediaType === 'video') {
+            // Show video, hide image
+            modalVideo.src = mediaUrl;
+            modalVideo.style.display = 'block';
+            modalImage.style.display = 'none';
+            // Auto-play video when modal opens
+            modalVideo.play();
+        } else {
+            // Show image, hide video
+            modalImage.src = mediaUrl;
+            modalImage.style.display = 'block';
+            modalVideo.style.display = 'none';
+            // Pause video if it was playing
+            if (!modalVideo.paused) {
+                modalVideo.pause();
+            }
+        }
+
         profileLink.href = profileLinkUrl;
         profileLink.textContent = 'View Profile';
         modal.style.display = 'flex'; // Show modal
@@ -1146,7 +1262,9 @@ document.addEventListener('DOMContentLoaded', function () {
     blurToggle.checked = blurUnwanted;
     speedSlider.value = feedDelay;
     speedValue.textContent = feedDelay;
-    
+    showImagesCheckbox.checked = showImages;
+    showVideosCheckbox.checked = showVideos;
+
     // Set Bluesky credentials in the form (on page load)
     if (bsky_identifier) {
         identifierInput.value = bsky_identifier;
@@ -1562,6 +1680,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     blurToggle.addEventListener('change', function(e) {
         blurUnwanted = e.target.checked;
+    });
+
+    // Media type filter event listeners
+    showImagesCheckbox.addEventListener('change', function(e) {
+        showImages = e.target.checked;
+    });
+
+    showVideosCheckbox.addEventListener('change', function(e) {
+        showVideos = e.target.checked;
     });
 
     // Add touch event listener for images

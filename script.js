@@ -1481,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Call the function on your modal image
-    const galleryModalImage = document.getElementById('gallery-modal-image');
+    // galleryModalImage is already declared at the top of the file
     galleryModalImage.addEventListener('load', () => {
         enableMagnifier(galleryModalImage);
     });

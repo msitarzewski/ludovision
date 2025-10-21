@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add play button overlay
             const playOverlay = document.createElement('div');
             playOverlay.className = 'play-overlay';
-            playOverlay.innerHTML = '▶';
+            playOverlay.innerHTML = '<svg viewBox="0 0 24 24" fill="white" style="width: 100%; height: 100%;"><path d="M8 5v14l11-7z"/></svg>';
             mediaContainer.appendChild(playOverlay);
         } else {
             // Create image element (existing logic)
@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             // Add play icon overlay
                             const playIcon = document.createElement('div');
                             playIcon.className = 'gallery-play-icon';
-                            playIcon.innerHTML = '▶';
+                            playIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="white" style="width: 100%; height: 100%;"><path d="M8 5v14l11-7z"/></svg>';
 
                             // Preprocess gallery labels and check for unwanted labels
                             const processedLabels = preprocessGalleryLabels(item.post.labels);

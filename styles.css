@@ -752,11 +752,15 @@ input[type="text"].form-control, input[type="password"].form-control {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 28px;
+    padding: 16px;
     pointer-events: none;
     z-index: 10;
-    text-indent: 4px; /* Optical centering of play symbol */
+}
+
+.play-overlay svg {
+    width: 32px;
+    height: 32px;
+    margin-left: 2px; /* Optical centering for play triangle */
 }
 
 .video-container:hover .play-overlay {
@@ -789,10 +793,14 @@ input[type="text"].form-control, input[type="password"].form-control {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 16px;
+    padding: 6px;
     pointer-events: none;
-    text-indent: 2px;
+}
+
+.gallery-play-icon svg {
+    width: 20px;
+    height: 20px;
+    margin-left: 1px; /* Optical centering for play triangle */
 }
 
 .gallery-video-container:hover .gallery-play-icon {

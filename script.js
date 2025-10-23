@@ -221,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         galleryObservers.forEach(observer => observer.disconnect());
         galleryObservers = [];
+        // Restore body scroll
+        document.body.style.overflow = '';
     });
 
     // Open profile in new tab
@@ -502,6 +504,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const mediaContainer = document.createElement('div');
         mediaContainer.className = mediaType === 'video' ? 'video-container' : 'image-container';
 
+        // Store profile data in container for touch events
+        mediaContainer.dataset.profileLinkUrl = profileLinkUrl;
+        mediaContainer.dataset.profileDid = profileDid;
+        mediaContainer.dataset.mediaType = mediaType;
+
         let mediaElement;
 
         if (mediaType === 'video') {
@@ -592,6 +599,9 @@ document.addEventListener('DOMContentLoaded', function () {
         profileLink.href = profileLinkUrl;
         profileLink.textContent = 'View Profile';
         modal.style.display = 'flex'; // Show modal
+
+        // Prevent body scroll on mobile when modal is open
+        document.body.style.overflow = 'hidden';
     }
 
     // Preprocess gallery labels
@@ -1128,6 +1138,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     modalVideo.pause();
                 }
                 modalVideo.src = '';
+                // Restore body scroll
+                document.body.style.overflow = '';
             }
             if (galleryModal.style.display === 'flex') {
                 galleryModal.style.display = 'none';
@@ -1139,6 +1151,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 galleryObservers.forEach(observer => observer.disconnect());
                 galleryObservers = [];
+                // Restore body scroll
+                document.body.style.overflow = '';
             }
         }
     });
@@ -1158,6 +1172,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 modalVideo.pause();
             }
             modalVideo.src = '';
+            // Restore body scroll
+            document.body.style.overflow = '';
         }
         if (event.target === galleryModal && !isGallerySlider) {
             galleryModal.style.display = 'none';
@@ -1170,6 +1186,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             galleryObservers.forEach(observer => observer.disconnect());
             galleryObservers = [];
+            // Restore body scroll
+            document.body.style.overflow = '';
         }
     });
 
@@ -1237,6 +1255,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Show the modal
         galleryImageModal.style.display = 'flex';
         galleryModal.style.display = 'none'; // Hide the gallery modal
+
+        // Prevent body scroll on mobile when modal is open
+        document.body.style.overflow = 'hidden';
     }
 
     function navigateGalleryImage(direction) {
@@ -1646,6 +1667,9 @@ document.addEventListener('DOMContentLoaded', function () {
             fetchGalleryImages(profileUrl);
             galleryModal.style.display = 'flex';
             galleryControls.style.display = 'flex';
+
+            // Prevent body scroll on mobile when modal is open
+            document.body.style.overflow = 'hidden';
         }
     }
 
@@ -1731,6 +1755,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 galleryModalVideo.pause();
             }
             galleryModalVideo.src = '';
+
+            // Restore body scroll
+            document.body.style.overflow = '';
         }
 
         static show(modalId) {
@@ -1846,18 +1873,100 @@ document.addEventListener('DOMContentLoaded', function () {
         muteVideosByDefault = e.target.checked;
     });
 
-    // Add touch event listener for images
-    document.querySelectorAll('.image-container img').forEach(img => {
-        img.addEventListener('touchstart', () => {
-            openImageModal(img.dataset.src, img.dataset.profileLinkUrl, img.dataset.profileDid);
-        }, { passive: true });
+    // Mobile touch handling: distinguish between tap and scroll
+    // This prevents scrolling from accidentally opening modals
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let isTouchScroll = false;
+    const SCROLL_THRESHOLD = 10; // pixels of movement before considering it a scroll
+    const TAP_TIME_THRESHOLD = 500; // ms - max duration for a tap
+
+    imagesContainer.addEventListener('touchstart', (event) => {
+        const target = event.target.closest('img, video');
+        if (target) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+            touchStartTime = Date.now();
+            isTouchScroll = false;
+        }
+    }, { passive: true });
+
+    imagesContainer.addEventListener('touchmove', (event) => {
+        if (event.touches[0]) {
+            const moveX = Math.abs(event.touches[0].clientX - touchStartX);
+            const moveY = Math.abs(event.touches[0].clientY - touchStartY);
+
+            // If touch moved more than threshold, consider it a scroll
+            if (moveX > SCROLL_THRESHOLD || moveY > SCROLL_THRESHOLD) {
+                isTouchScroll = true;
+            }
+        }
+    }, { passive: true });
+
+    imagesContainer.addEventListener('touchend', (event) => {
+        const touchDuration = Date.now() - touchStartTime;
+        const target = event.target.closest('img, video');
+
+        // Only open modal if:
+        // 1. Touch was on an image/video
+        // 2. It wasn't a scroll gesture
+        // 3. Touch duration was less than threshold (quick tap)
+        if (target && !isTouchScroll && touchDuration < TAP_TIME_THRESHOLD) {
+            event.preventDefault(); // Prevent ghost click
+
+            // Get media type and URL
+            const mediaType = target.tagName === 'VIDEO' ? 'video' : 'image';
+            const mediaUrl = target.dataset.src || target.src;
+
+            // Get profile info from parent container
+            const container = target.closest('.image-container, .video-container');
+            if (container && container.dataset) {
+                const profileLinkUrl = container.dataset.profileLinkUrl;
+                const profileDid = container.dataset.profileDid;
+                openImageModal(mediaUrl, mediaType, profileLinkUrl, profileDid);
+            }
+        }
     });
 
-    // Add touch event listener for the images container
-    imagesContainer.addEventListener('touchstart', (event) => {
-        const img = event.target.closest('img');
-        if (img) {
-            openImageModal(img.dataset.src, img.dataset.profileLinkUrl, img.dataset.profileDid);
+    // Gallery touch handling: same tap vs scroll detection for gallery
+    let galleryTouchStartX = 0;
+    let galleryTouchStartY = 0;
+    let galleryTouchStartTime = 0;
+    let isGalleryTouchScroll = false;
+
+    galleryContainer.addEventListener('touchstart', (event) => {
+        const target = event.target.closest('img, video');
+        if (target) {
+            galleryTouchStartX = event.touches[0].clientX;
+            galleryTouchStartY = event.touches[0].clientY;
+            galleryTouchStartTime = Date.now();
+            isGalleryTouchScroll = false;
+        }
+    }, { passive: true });
+
+    galleryContainer.addEventListener('touchmove', (event) => {
+        if (event.touches[0]) {
+            const moveX = Math.abs(event.touches[0].clientX - galleryTouchStartX);
+            const moveY = Math.abs(event.touches[0].clientY - galleryTouchStartY);
+
+            if (moveX > SCROLL_THRESHOLD || moveY > SCROLL_THRESHOLD) {
+                isGalleryTouchScroll = true;
+            }
+        }
+    }, { passive: true });
+
+    galleryContainer.addEventListener('touchend', (event) => {
+        const touchDuration = Date.now() - galleryTouchStartTime;
+        const target = event.target.closest('img, video');
+
+        if (target && !isGalleryTouchScroll && touchDuration < TAP_TIME_THRESHOLD) {
+            event.preventDefault(); // Prevent ghost click
+
+            const mediaType = target.tagName === 'VIDEO' ? 'video' : 'image';
+            const mediaSrc = target.getAttribute('data-src') || target.src;
+            currentGalleryImageIndex = Array.from(galleryContainer.querySelectorAll('img, video')).indexOf(target);
+            showGalleryImageInModal(mediaSrc, mediaType);
         }
     });
 

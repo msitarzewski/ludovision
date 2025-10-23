@@ -806,3 +806,49 @@ input[type="text"].form-control, input[type="password"].form-control {
 .gallery-video-container:hover .gallery-play-icon {
     background: rgba(0, 0, 0, 0.9);
 }
+
+/* Mobile Touch Improvements */
+@media (max-width: 768px) {
+    /* Prevent text selection during scrolling */
+    #images-container,
+    #gallery-modal .grid {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    /* Visual feedback on tap - brief opacity change */
+    .image-container img:active,
+    .video-container video:active,
+    #gallery-modal .grid img:active,
+    #gallery-modal .grid video:active {
+        opacity: 0.7;
+        transition: opacity 0.1s;
+    }
+
+    /* Ensure buttons have adequate touch targets (minimum 44x44px per Apple HIG) */
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Improve button spacing for easier tapping */
+    .modal-buttons button,
+    .button-group button {
+        margin: 8px;
+    }
+
+    /* Prevent rubber-band scrolling on iOS when modals are open */
+    body.modal-open {
+        position: fixed;
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+/* Improve scrolling performance on mobile */
+#images-container,
+#gallery-modal .grid {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}

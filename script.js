@@ -1281,10 +1281,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // Clear existing timer
         clearTimeout(galleryControlsHideTimer);
 
-        // Set new timer to hide after 3 seconds
+        // Set new timer to hide after 5 seconds (longer for mobile tapping)
         galleryControlsHideTimer = setTimeout(() => {
             hideGalleryModalControls();
-        }, 3000);
+        }, 5000);
     }
 
     function hideGalleryModalControls() {
@@ -1312,6 +1312,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Prevent hiding when hovering/touching gallery controls
+    galleryModalCloseButton.addEventListener('mouseenter', () => {
+        clearTimeout(galleryControlsHideTimer);
+    });
+    galleryModalControls.addEventListener('mouseenter', () => {
+        clearTimeout(galleryControlsHideTimer);
+    });
+
+    // Resume hiding timer when leaving gallery controls
+    galleryModalCloseButton.addEventListener('mouseleave', () => {
+        if (galleryImageModal.style.display === 'flex') {
+            showGalleryModalControls();
+        }
+    });
+    galleryModalControls.addEventListener('mouseleave', () => {
+        if (galleryImageModal.style.display === 'flex') {
+            showGalleryModalControls();
+        }
+    });
+
     // Close button click handler
     galleryModalCloseButton.addEventListener('click', () => {
         closeGalleryImageModal();
@@ -1327,10 +1347,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // Clear existing timer
         clearTimeout(feedControlsHideTimer);
 
-        // Set new timer to hide after 3 seconds
+        // Set new timer to hide after 5 seconds (longer for mobile tapping)
         feedControlsHideTimer = setTimeout(() => {
             hideFeedModalControls();
-        }, 3000);
+        }, 5000);
     }
 
     function hideFeedModalControls() {
@@ -1350,6 +1370,26 @@ document.addEventListener('DOMContentLoaded', function () {
             showFeedModalControls();
         }
     }, { passive: true });
+
+    // Prevent hiding when hovering/touching controls
+    feedModalCloseButton.addEventListener('mouseenter', () => {
+        clearTimeout(feedControlsHideTimer);
+    });
+    feedModalControls.addEventListener('mouseenter', () => {
+        clearTimeout(feedControlsHideTimer);
+    });
+
+    // Resume hiding timer when leaving controls
+    feedModalCloseButton.addEventListener('mouseleave', () => {
+        if (modal.style.display === 'flex') {
+            showFeedModalControls();
+        }
+    });
+    feedModalControls.addEventListener('mouseleave', () => {
+        if (modal.style.display === 'flex') {
+            showFeedModalControls();
+        }
+    });
 
     // Feed modal close button click handler
     feedModalCloseButton.addEventListener('click', () => {

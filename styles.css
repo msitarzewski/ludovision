@@ -78,9 +78,17 @@ button {
 }
 
 #modal-image {
-    max-width: 90%;
-    max-height: 90%;
-    border-radius: 20px;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    object-fit: contain;
+}
+
+#modal-video {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    object-fit: contain;
 }
 
 #modal-nav {

@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
     const modalVideo = document.getElementById('modal-video');
+    const feedModalCloseButton = document.getElementById('feed-modal-close-button');
+    const feedModalControls = document.getElementById('feed-modal-controls');
     const profileLink = document.getElementById('profile-link');
     const galleryProfileLink = document.getElementById('gallery-profile-link');
     const copyPlcBtn = document.getElementById('copy-plc-btn');
@@ -604,6 +606,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Prevent body scroll on mobile when modal is open
         document.body.style.overflow = 'hidden';
+
+        // Show controls and start auto-hide timer for feed modal
+        showFeedModalControls();
     }
 
     // Preprocess gallery labels
@@ -1142,6 +1147,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 modalVideo.src = '';
                 // Restore body scroll
                 document.body.style.overflow = '';
+                // Clear feed modal timer
+                clearTimeout(feedControlsHideTimer);
             }
             if (galleryModal.style.display === 'flex') {
                 galleryModal.style.display = 'none';
@@ -1176,6 +1183,8 @@ document.addEventListener('DOMContentLoaded', function () {
             modalVideo.src = '';
             // Restore body scroll
             document.body.style.overflow = '';
+            // Clear feed modal timer
+            clearTimeout(feedControlsHideTimer);
         }
         if (event.target === galleryModal && !isGallerySlider) {
             galleryModal.style.display = 'none';
@@ -1306,6 +1315,55 @@ document.addEventListener('DOMContentLoaded', function () {
     // Close button click handler
     galleryModalCloseButton.addEventListener('click', () => {
         closeGalleryImageModal();
+    });
+
+    // Feed modal auto-hide controls functionality
+    let feedControlsHideTimer;
+
+    function showFeedModalControls() {
+        feedModalCloseButton.classList.remove('hidden');
+        feedModalControls.classList.remove('hidden');
+
+        // Clear existing timer
+        clearTimeout(feedControlsHideTimer);
+
+        // Set new timer to hide after 3 seconds
+        feedControlsHideTimer = setTimeout(() => {
+            hideFeedModalControls();
+        }, 3000);
+    }
+
+    function hideFeedModalControls() {
+        feedModalCloseButton.classList.add('hidden');
+        feedModalControls.classList.add('hidden');
+    }
+
+    // Event listeners for feed modal to show controls on interaction
+    modal.addEventListener('mousemove', () => {
+        if (modal.style.display === 'flex') {
+            showFeedModalControls();
+        }
+    });
+
+    modal.addEventListener('touchend', (e) => {
+        if (modal.style.display === 'flex') {
+            showFeedModalControls();
+        }
+    }, { passive: true });
+
+    // Feed modal close button click handler
+    feedModalCloseButton.addEventListener('click', () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+
+        // Stop and unload video
+        if (!modalVideo.paused) {
+            modalVideo.pause();
+        }
+        modalVideo.src = '';
+
+        // Clear timer
+        clearTimeout(feedControlsHideTimer);
     });
 
     function navigateGalleryImage(direction) {

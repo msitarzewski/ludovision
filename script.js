@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const galleryImageModal = document.getElementById('gallery-image-modal');
     const galleryModalImage = document.getElementById('gallery-modal-image');
     const galleryModalVideo = document.getElementById('gallery-modal-video');
+    const galleryModalCloseButton = document.getElementById('gallery-modal-close-button');
+    const galleryModalControls = document.getElementById('gallery-modal-controls');
     const galleryControls = document.querySelector('.gallery-controls');
     const galleryGrid = document.querySelector('#gallery-modal .grid');
     const gallerySizeSlider = document.getElementById('gallery-size-slider');
@@ -1195,11 +1197,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function showGalleryImageInModal(mediaUrl, mediaType = 'image') {
         const galleryModal = document.getElementById('gallery-modal');
 
-        // Remove any existing "View Full Size" button to prevent duplicates
-        const existingButton = document.querySelector('.view-gallery-full-size-button');
-        if (existingButton) {
-            existingButton.remove();
-        }
+        // Clear controls overlay
+        galleryModalControls.innerHTML = '';
 
         if (mediaType === 'video') {
             // Show video, hide image
@@ -1241,8 +1240,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         window.open(mediaUrl, '_blank'); // Open full-size image in a new tab
                     });
 
-                    // Append the button to the modal
-                    galleryImageModal.appendChild(fullSizeButton);
+                    // Append the button to the controls overlay
+                    galleryModalControls.appendChild(fullSizeButton);
 
                     // Dynamically enable the magnifier since the button is now present
                     enableMagnifier(galleryModalImage);
@@ -1258,7 +1257,56 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Prevent body scroll on mobile when modal is open
         document.body.style.overflow = 'hidden';
+
+        // Show controls and start auto-hide timer
+        showGalleryModalControls();
     }
+
+    // Auto-hide controls functionality
+    let galleryControlsHideTimer;
+
+    function showGalleryModalControls() {
+        galleryModalCloseButton.classList.remove('hidden');
+        galleryModalControls.classList.remove('hidden');
+
+        // Clear existing timer
+        clearTimeout(galleryControlsHideTimer);
+
+        // Set new timer to hide after 3 seconds
+        galleryControlsHideTimer = setTimeout(() => {
+            hideGalleryModalControls();
+        }, 3000);
+    }
+
+    function hideGalleryModalControls() {
+        galleryModalCloseButton.classList.add('hidden');
+        galleryModalControls.classList.add('hidden');
+    }
+
+    // Event listeners to show controls on interaction (only when modal is open)
+    galleryImageModal.addEventListener('mousemove', () => {
+        if (galleryImageModal.style.display === 'flex') {
+            showGalleryModalControls();
+        }
+    });
+
+    galleryImageModal.addEventListener('touchstart', () => {
+        if (galleryImageModal.style.display === 'flex') {
+            showGalleryModalControls();
+        }
+    });
+
+    // Also show on keydown when modal is open
+    document.addEventListener('keydown', (e) => {
+        if (galleryImageModal.style.display === 'flex') {
+            showGalleryModalControls();
+        }
+    });
+
+    // Close button click handler
+    galleryModalCloseButton.addEventListener('click', () => {
+        closeGalleryImageModal();
+    });
 
     function navigateGalleryImage(direction) {
 
@@ -1350,6 +1398,10 @@ document.addEventListener('DOMContentLoaded', function () {
             galleryModalVideo.pause();
         }
         galleryModalVideo.src = '';
+
+        // Clear auto-hide timer and reset controls
+        clearTimeout(galleryControlsHideTimer);
+        galleryModalControls.innerHTML = '';
     }
 
     // Close gallery image modal with click outside
@@ -1374,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // view full size image
         if(event.key === 'f' || event.key === ' ') {
             if (galleryImageModal.style.display === 'flex') {
-                const fullSizeButton = document.querySelector('.view-gallery-full-size-button');
+                const fullSizeButton = galleryModalControls.querySelector('.view-gallery-full-size-button');
                 if (fullSizeButton) {
                     fullSizeButton.click();
                 }
@@ -1477,8 +1529,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function enableMagnifier(imageElement) {
 
-        // Check if the "View Full Size" button is present and visible
-        const fullSizeButton = document.querySelector('.view-gallery-full-size-button');
+        // Check if the "View Full Size" button is present in the controls overlay
+        const fullSizeButton = galleryModalControls.querySelector('.view-gallery-full-size-button');
         if (magnifierElement && magnifier && (!fullSizeButton || fullSizeButton.style.display === 'none')) {
             magnifierElement.style.display = 'none'; // Ensure magnifier is hidden
             return; // Exit if the button is not shown

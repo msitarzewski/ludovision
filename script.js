@@ -1332,9 +1332,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Close button click handler
-    galleryModalCloseButton.addEventListener('click', () => {
+    // Gallery modal close button - use touchend for better mobile response
+    galleryModalCloseButton.addEventListener('touchend', (e) => {
+        e.preventDefault(); // Prevent ghost click
         closeGalleryImageModal();
+    }, { passive: false });
+
+    // Also support mouse click for desktop
+    galleryModalCloseButton.addEventListener('click', (e) => {
+        // Only handle if not already handled by touch
+        if (e.detail !== 0) {
+            closeGalleryImageModal();
+        }
     });
 
     // Feed modal auto-hide controls functionality
@@ -1391,8 +1400,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Feed modal close button click handler
-    feedModalCloseButton.addEventListener('click', () => {
+    // Feed modal close button click handler - use touchend for better mobile response
+    feedModalCloseButton.addEventListener('touchend', (e) => {
+        e.preventDefault(); // Prevent ghost click
         modal.style.display = 'none';
         document.body.style.overflow = '';
 
@@ -1404,6 +1414,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Clear timer
         clearTimeout(feedControlsHideTimer);
+    }, { passive: false });
+
+    // Also support mouse click for desktop
+    feedModalCloseButton.addEventListener('click', (e) => {
+        // Only handle if not already handled by touch
+        if (e.detail !== 0) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+
+            // Stop and unload video
+            if (!modalVideo.paused) {
+                modalVideo.pause();
+            }
+            modalVideo.src = '';
+
+            // Clear timer
+            clearTimeout(feedControlsHideTimer);
+        }
     });
 
     function navigateGalleryImage(direction) {

@@ -15,6 +15,8 @@ This file provides an index of all documentation and task files in the Ludovisio
 ## Tasks
 - [0001_gallery-navigation-improvements.md](./tasks/0001_gallery-navigation-improvements.md): Enhance gallery navigation, loading, and error handling *(updated: controls pinned, visibility bugfixes, grid margin-bottom, slider/modal robustness)* ✅ Completed
 - [0002_settings-modal-bugfix.md](./tasks/0002_settings-modal-bugfix.md): Fix settings modal initialization bug and ensure modal controls are always available. ✅ Completed
+- [0003_video-support-implementation.md](./tasks/0003_video-support-implementation.md): Add comprehensive video support to Ludovision with playback, filtering, and resource management. ✅ Completed
+- [0004_fullscreen-modal-controls.md](./tasks/0004_fullscreen-modal-controls.md): Implement maximized full-screen modals with auto-hiding overlay controls and mobile-optimized interactions. ✅ Completed
 
 ## Instructions
 - [ai_instructions.md](../ai_instructions.md): AI operation and memory bank workflow

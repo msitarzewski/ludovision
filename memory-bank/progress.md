@@ -22,12 +22,16 @@
 - ✅ Clean, minimal design focused on content
 - ✅ Responsive layout that works across devices
 - ✅ Modal system for detailed views (images and videos)
+- ✅ Full-screen maximized modal display (100vw × 100vh)
+- ✅ Auto-hide controls with transparent overlays
+- ✅ Close button (X) in upper-right corner
 - ✅ Settings panel for customization with media type filters
 - ✅ Image magnifier for detailed viewing
 - ✅ Video play button overlays in feed and gallery
 - ✅ Keyboard navigation support
 - ✅ Continuous gallery navigation with auto-loading (mixed media)
 - ✅ Subtle loading indicators
+- ✅ Mobile-optimized touch interactions (single-tap responsiveness)
 
 ### Authentication
 - ✅ Bluesky authentication for gallery view
@@ -62,7 +66,7 @@
 - ⬜ Export or sharing capabilities
 
 ### User Experience Improvements
-- ⬜ Enhanced mobile touch controls
+- ✅ Enhanced mobile touch controls (tap responsiveness, scroll detection)
 - ⬜ Accessibility improvements for screen readers
 - ⬜ More customization options in settings
 - ✅ Improved error handling and user feedback
@@ -83,6 +87,11 @@
 Ludovision is currently in a functional proof-of-concept state. The core features are implemented and working, providing a complete experience for viewing the Bluesky image firehose and exploring user galleries.
 
 ### Recent Milestones
+- **Implemented full-screen modal controls with auto-hide**
+  - Maximized display for immersive viewing
+  - Auto-hiding overlay controls (5-second timer)
+  - Mobile-optimized tap responsiveness
+  - Single-tap close button functionality
 - **Implemented comprehensive video support across the platform**
   - Video detection from Bluesky firehose
   - Video playback in feed and gallery views
@@ -99,10 +108,10 @@ Ludovision is currently in a functional proof-of-concept state. The core feature
 - Implemented continuous gallery navigation with auto-loading
 
 ### Current Focus
-- Testing and refining video support implementation
+- Testing full-screen modal controls on various devices
+- Refining mobile touch interactions based on user feedback
 - Optimizing gallery performance with mixed media content
-- Monitoring video playback performance and resource usage
-- Gathering user feedback on video integration
+- Monitoring overall application performance and resource usage
 
 ## Known Issues
 
@@ -112,9 +121,9 @@ Ludovision is currently in a functional proof-of-concept state. The core feature
 - Some browser-specific rendering differences
 
 ### User Experience Issues
-- Mobile experience could be more touch-optimized
 - Settings panel organization could be improved
 - Limited feedback during authentication process
+- Some edge cases in mobile touch interactions may exist
 
 ### Content Issues
 - Content warning system is binary (warn/don't warn) without granularity

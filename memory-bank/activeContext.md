@@ -1,10 +1,20 @@
 # Active Context: Ludovision
 
 ## Current Work Focus
-Video support has been successfully implemented and is now complete. The platform now fully supports both images and videos from the Bluesky firehose, with comprehensive playback, filtering, and resource management capabilities. Focus is shifting to testing, refinement, and future enhancements.
+Full-screen modal enhancements have been successfully implemented. Both feed and gallery modals now feature maximized display with auto-hiding overlay controls optimized for mobile touch interactions. Focus is shifting to testing, refinement, and future enhancements.
 
 ## Recent Changes
-1. **Video Support Implementation** (Completed):
+1. **Full-Screen Modal Controls** (Completed):
+   - Maximized media display to 100vw × 100vh in both feed and gallery modals
+   - Added close button (X) in upper-right corner for intuitive closing
+   - Implemented auto-hide controls with 5-second timer
+   - Created bottom overlay with transparent black background for buttons
+   - Optimized mobile tap responsiveness with touchend events
+   - Removed pointer-events:none for reliable single-tap interactions
+   - Added hover/touch pause to prevent controls hiding during interaction
+   - Improved mobile UX with proper touch event handling
+
+2. **Video Support Implementation** (Completed):
    - Added detection and processing of `app.bsky.embed.video` embeds from Bluesky firehose
    - Implemented video playback in feed grid with SVG play button overlays
    - Added HTML5 video player to feed modal with native controls
@@ -21,14 +31,20 @@ Video support has been successfully implemented and is now complete. The platfor
    - Optimized play button sizes based on user feedback (reduced to 50% of original)
    - Updated all code to use mixed media selectors (`img, video`) throughout
 
-2. **Gallery Navigation Improvements**:
+3. **Mobile Touch Interaction Improvements**:
+   - Fixed touch scrolling in gallery grid (tap vs scroll detection)
+   - Improved button tap responsiveness on mobile devices
+   - Implemented smart auto-hide that pauses during active interaction
+   - Ensured adequate touch targets (44px minimum) throughout UI
+
+4. **Gallery Navigation Improvements**:
    - Implemented continuous gallery navigation with auto-loading of additional media
    - Added media deduplication to prevent duplicate content in galleries
    - Enhanced error handling with user-friendly messages and retry options
    - Replaced full-screen dimming with subtle loading indicators
    - Converted media loading to Promise-based for better control flow
 
-3. **Memory Bank Documentation**:
+5. **Memory Bank Documentation**:
    - Created the Memory Bank structure with core documentation files
    - Added task documentation for completed features
    - Updated progress tracking to reflect recent improvements

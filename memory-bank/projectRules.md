@@ -18,6 +18,8 @@
 - **Content Warnings**: Potentially sensitive content should have appropriate warnings
 - **User Control**: Users should have control over their experience (image size, content filtering)
 - **Keyboard Navigation**: Support keyboard shortcuts for common actions
+- **Auto-Hide Controls**: Controls should fade out to maximize viewing area but remain accessible
+- **Mobile-First Interactions**: Touch interactions must be optimized for single-tap responsiveness
 
 ### Privacy Principles
 - **No Tracking**: The application must never implement tracking or analytics
@@ -63,6 +65,52 @@
 - Image loading can be delayed to control flow rate
 - Header auto-hides during inactivity for more viewing space
 
+## Mobile Touch Interaction Patterns
+
+### Critical Rules for Mobile Responsiveness
+1. **Use `touchend` instead of `click` for buttons**: Mobile `click` events have 300ms delay and can be unreliable when element states are changing
+2. **Never use `pointer-events: none` on hidden interactive elements**: Prevents single-tap interactions; use opacity transitions instead
+3. **Distinguish taps from scrolls**: Track touchstart/touchend positions - if movement > 10px, it's a scroll, not a tap
+4. **Use passive listeners for scroll compatibility**: `{ passive: true }` allows smooth scrolling without interference
+5. **Minimum 44px tap targets**: Follow mobile accessibility guidelines for adequate touch target size
+6. **Prevent ghost clicks**: Use `preventDefault()` on touchend events to avoid duplicate click events 300ms later
+
+### Auto-Hide Control Timing
+- **Timer Duration**: 5 seconds provides good balance between immersion and usability on mobile
+- **Pause on Interaction**: Clear timer when hovering/touching controls to prevent premature hiding
+- **Visual Feedback**: Fade transitions (0.3s) provide smooth UX
+
+### Event Handler Patterns
+```javascript
+// Good: Reliable mobile button
+button.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  handleAction();
+}, { passive: false });
+
+// Also support desktop
+button.addEventListener('click', (e) => {
+  if (e.detail !== 0) { // Avoid double-firing
+    handleAction();
+  }
+});
+
+// Good: Tap vs scroll detection
+let startX, startY;
+element.addEventListener('touchstart', (e) => {
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+}, { passive: true });
+
+element.addEventListener('touchend', (e) => {
+  const deltaX = Math.abs(e.changedTouches[0].clientX - startX);
+  const deltaY = Math.abs(e.changedTouches[0].clientY - startY);
+  if (deltaX < 10 && deltaY < 10) {
+    // It's a tap
+  }
+}, { passive: true });
+```
+
 ## Known Challenges
 
 ### Technical Limitations
@@ -76,9 +124,9 @@
 - No way to predict or pre-filter incoming content
 
 ### User Experience
-- Mobile experience requires different interaction patterns
 - Settings panel organization could be more intuitive
 - Authentication process could provide better feedback
+- Some edge cases in mobile touch interactions may need further refinement
 
 ## Tool Usage Patterns
 
@@ -105,9 +153,12 @@
 - Implemented gallery view with authentication
 - Added user customization options
 - Created Memory Bank documentation system
+- Implemented comprehensive video support
+- Added full-screen modal controls with auto-hide
+- Optimized mobile touch interactions for single-tap responsiveness
 
 ### Future Directions
 - Consider adding more advanced filtering options
 - Explore additional visualization modes
-- Investigate performance optimizations
-- Enhance mobile experience
+- Investigate performance optimizations for long sessions
+- Continue refining mobile touch interactions based on user feedback

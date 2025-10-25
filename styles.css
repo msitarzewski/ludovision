@@ -847,7 +847,7 @@ input[type="text"].form-control, input[type="password"].form-control {
 
 .modal-close-button.hidden {
     opacity: 0;
-    pointer-events: none;
+    /* Remove pointer-events: none so button remains clickable even when faded */
 }
 
 /* Modal Controls Overlay (Bottom) */
@@ -869,7 +869,7 @@ input[type="text"].form-control, input[type="password"].form-control {
 
 .modal-controls-overlay.hidden {
     opacity: 0;
-    pointer-events: none;
+    /* Keep pointer-events for bottom controls so buttons remain clickable when faded */
 }
 
 /* Update existing View Full Size button for overlay */
